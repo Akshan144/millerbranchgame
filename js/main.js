@@ -111,6 +111,18 @@
       In.mouse.moved = true;
       return;
     }
+    const sc = MB.scene;
+    if (sc.player && sc.player.seated && sc.cardRects) {
+      const i = sc.cardRects.findIndex((r) => r && U.inRect(x, y, r));
+      if (i >= 0) {
+        sc.essayPick(i);
+        return;
+      }
+    }
+    if (sc.dlg) {
+      In.virtualPress('act');
+      return;
+    }
     for (const b of T.buttons) {
       if (U.dist(x, y, b.x, b.y) < b.r + 14) {
         b.down = true;

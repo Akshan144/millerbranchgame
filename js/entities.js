@@ -55,6 +55,7 @@
     hurt: ['HEY!', 'my notes!!', 'ugh!!', 'seriously?!'],
     coffee: ['bless you', 'CAFFEINE', 'i can see sounds', 'turbo mode'],
     pizza: ['PIZZA!!', 'brain food', 'best. friend. ever.'],
+    thanks: ['my hero', 'thank u!!', 'bless', 'ok we are SO back', 'legend', 'you rock']
   };
 
   const PATRONS = [
@@ -167,8 +168,10 @@
           this.dir = mx < 0 ? -1 : 1;
         }
       }
-      const hit = Wd.moveCircle(this, this.vx * dt, this.vy * dt, 12);
-      if (hit && this.dashT > 0) {
+      const ox = this.x, oy = this.y;
+      const hit = Wd.moveCircle(this, this.vx * dt, this.vy * dt, 11, false, true);
+      const moved = Math.hypot(this.x - ox, this.y - oy), wanted = Math.hypot(this.vx, this.vy) * dt;
+      if (hit && this.dashT > 0 && moved < wanted * 0.35) {
         this.dashT = 0;
         this.sq = 0.5;
         MB.FX.dust(this.x, this.y, 5);
@@ -300,7 +303,7 @@
       this.goTo(this.seat.x, this.seat.y);
       this.say(U.pick(MB.LINES.back), 2);
       const full = g.stats.pep > 1;
-      this.focus = full ? 100 : 65;
+      this.focus = full ? 100 : 75;
       if (g.has('peptalk')) {
         this.focus = 100;
         this.immuneT = 6;

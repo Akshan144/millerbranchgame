@@ -52,17 +52,24 @@
   In.anyHit = () => In.pressed.size > 0 || In.vPressed.size > 0 || In.mouse.clicked;
 
   // --- content ---------------------------------------------------------------------------
+  // Distractions come in waves with calm stretches between them. `intro` lists new types in
+  // the order they first appear; afterwards waves draw from the whole deck.
+  const D1 = ['phone', 'talker', 'roomba', 'avalanche'];
+  const D2 = D1.concat(['printer', 'wifi', 'birds', 'sleeper', 'pizza']);
+  const D3 = D2.concat(['toddlers', 'leak', 'gossip']);
+  const D4 = D3.concat(['outage', 'alarm', 'raccoon']);
+  const D5 = D4.concat(['ghost']);
   MB.NIGHTS = [
-    { n: 1, day: 'MONDAY', date: 'OCT 27', title: 'The Brainstorm', task: 'Personal essay: rough draft', weather: 'clear', friends: 2, quota: 2, duration: 150, work: 98, myPresses: 190, spawn: [9, 5.2], maxEv: 3,
-      deck: ['phone', 'talker', 'roomba', 'avalanche'], script: [[4, 'phone'], [16, 'talker'], [30, 'roomba'], [47, 'avalanche']] },
-    { n: 2, day: 'TUESDAY', date: 'OCT 28', title: 'First Drafts', task: 'Supplemental essays', weather: 'wind', friends: 2, quota: 2, duration: 158, work: 104, myPresses: 205, spawn: [8, 4.6], maxEv: 4,
-      deck: ['phone', 'talker', 'roomba', 'avalanche', 'printer', 'wifi', 'birds', 'sleeper', 'pizza'], script: [[4, 'printer'], [18, 'sleeper'], [34, 'wifi'], [50, 'birds'], [68, 'pizza']] },
-    { n: 3, day: 'WEDNESDAY', date: 'OCT 29', title: 'Why Us?', task: '"Why our school?" essays', weather: 'rain', friends: 3, quota: 3, duration: 164, work: 108, myPresses: 215, spawn: [7.2, 4.1], maxEv: 4,
-      deck: ['phone', 'talker', 'roomba', 'avalanche', 'printer', 'wifi', 'birds', 'sleeper', 'pizza', 'toddlers', 'leak', 'gossip'], script: [[4, 'leak'], [18, 'gossip'], [36, 'toddlers']] },
-    { n: 4, day: 'THURSDAY', date: 'OCT 30', title: 'The Activities List', task: '150 characters per activity', weather: 'fog', friends: 3, quota: 3, duration: 170, work: 108, myPresses: 215, spawn: [7, 4], maxEv: 5,
-      deck: ['phone', 'talker', 'roomba', 'avalanche', 'printer', 'wifi', 'birds', 'sleeper', 'pizza', 'toddlers', 'leak', 'gossip', 'outage', 'alarm', 'raccoon'], script: [[5, 'raccoon'], [22, 'outage'], [46, 'alarm']] },
-    { n: 5, day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 4, quota: 4, duration: 180, work: 110, myPresses: 225, spawn: [6.5, 3.6], maxEv: 5,
-      deck: ['phone', 'talker', 'roomba', 'avalanche', 'printer', 'wifi', 'birds', 'sleeper', 'pizza', 'toddlers', 'leak', 'gossip', 'outage', 'alarm', 'raccoon', 'ghost'], script: [[5, 'ghost'], [20, 'birds']] },
+    { n: 1, day: 'MONDAY', date: 'OCT 27', title: 'The Brainstorm', task: 'Personal essay: rough draft', weather: 'clear', friends: 2, quota: 2, duration: 150, work: 118, essayLines: 9,
+      waves: { first: 6, calm: [12, 16], size: [1, 2], gap: [3, 5] }, maxEv: 2, deck: D1, intro: ['phone', 'talker', 'roomba', 'avalanche'] },
+    { n: 2, day: 'TUESDAY', date: 'OCT 28', title: 'First Drafts', task: 'Supplemental essays', weather: 'wind', friends: 2, quota: 2, duration: 155, work: 122, essayLines: 10,
+      waves: { first: 6, calm: [10, 14], size: [1, 2], gap: [3, 4.5] }, maxEv: 3, deck: D2, intro: ['printer', 'sleeper', 'wifi', 'birds', 'pizza'] },
+    { n: 3, day: 'WEDNESDAY', date: 'OCT 29', title: 'Why Us?', task: '"Why our school?" essays', weather: 'rain', friends: 3, quota: 3, duration: 160, work: 126, essayLines: 10,
+      waves: { first: 6, calm: [10, 13], size: [1, 3], gap: [2.5, 4] }, maxEv: 3, deck: D3, intro: ['leak', 'gossip', 'toddlers'] },
+    { n: 4, day: 'THURSDAY', date: 'OCT 30', title: 'The Activities List', task: '150 characters per activity', weather: 'fog', friends: 3, quota: 3, duration: 165, work: 130, essayLines: 11,
+      waves: { first: 6, calm: [9, 12], size: [2, 3], gap: [2.5, 4] }, maxEv: 4, deck: D4, intro: ['raccoon', 'outage', 'alarm'] },
+    { n: 5, day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 4, quota: 4, duration: 170, work: 134, essayLines: 12,
+      waves: { first: 6, calm: [8, 12], size: [2, 3], gap: [2.5, 3.5] }, maxEv: 4, deck: D5, intro: ['ghost'] },
   ];
   MB.nightDef = function (run) {
     if (run.mode !== 'endless') return MB.NIGHTS[run.nightIdx];
@@ -71,9 +78,10 @@
     return {
       n: 5 + k, endlessIdx: k + 1, day: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'][k % 7], date: 'NOV ' + (1 + k), title: 'Rolling Admissions ' + (k + 1),
       task: U.pick(['Scholarship essays', 'Honors college app', 'Waitlist letter', 'Financial aid forms', 'Portfolio upload']),
-      weather: U.pick(weathers), halloween: k % 7 === 6, friends: 4, quota: Math.min(5, 3 + Math.floor(k / 2)),
-      duration: 170, work: Math.min(150, 110 + k * 5), myPresses: Math.min(320, 230 + k * 10), spawn: [Math.max(3.4, 6 - k * 0.35), Math.max(2, 3.3 - k * 0.15)], maxEv: Math.min(9, 5 + Math.floor(k / 2)),
-      deck: Object.keys(MB.EVENTS), script: [[4, U.pick(['phone', 'talker', 'gossip'])]],
+      weather: U.pick(weathers), halloween: k % 7 === 6, friends: 4, quota: k < 2 ? 3 : k < 5 ? 4 : 5,
+      duration: 165, work: Math.min(160, 132 + k * 5), essayLines: Math.min(15, 12 + Math.floor(k / 2)),
+      waves: { first: 6, calm: [Math.max(5, 10 - k * 0.6), Math.max(7, 13 - k * 0.6)], size: [2, Math.min(5, 2 + Math.floor(k / 2))], gap: [2, 3.5] },
+      maxEv: Math.min(6, 3 + Math.floor(k / 2)), deck: D5, intro: [],
     };
   };
 
@@ -82,9 +90,10 @@
     { id: 'spikes', name: 'Track Spikes', desc: 'Dash recharges 25% faster.', icon: 'dash', max: 2 },
     { id: 'doubledash', name: 'Double Dash', desc: '+1 dash charge. Chain two in a row.', icon: 'dash', max: 2 },
     { id: 'whistle', name: "Librarian's Glare", desc: 'SHHH reaches 25% farther and cools down 20% faster.', icon: 'shh', max: 2 },
-    { id: 'lofi', name: 'Lo-Fi Playlist', desc: 'Friends regain focus 60% faster when it is quiet.', icon: 'star', max: 2 },
+    { id: 'lofi', name: 'Lo-Fi Playlist', desc: 'Friends recover focus 60% faster and the Groove meter fills faster.', icon: 'star', max: 2 },
     { id: 'headphones', name: 'Noise-Canceling Headphones', desc: 'Friends lose 18% less focus to chaos.', icon: 'shh', max: 3 },
-    { id: 'keyboard', name: 'Clicky Keyboard', desc: 'Every keystroke on your essay counts 30% more.', icon: 'envelope', max: 2 },
+    { id: 'keyboard', name: 'Thesaurus Pro', desc: 'Every essay line you write counts 30% more.', icon: 'envelope', max: 2 },
+    { id: 'encore', name: 'Encore', desc: 'Groove mode lasts 5 seconds longer.', icon: 'star', max: 2 },
     { id: 'airplane', name: 'Airplane Mode', desc: 'Phone Buzz shows up half as often.', icon: 'phone', max: 1 },
     { id: 'peptalk', name: 'TED Talk Energy', desc: 'Pep talks restore full focus and 6s of calm.', icon: 'chat', max: 1 },
     { id: 'espresso', name: 'Espresso Machine', desc: 'The vending machine restocks coffee twice as fast.', icon: 'coffee', max: 1 },
@@ -93,13 +102,6 @@
     { id: 'groupchat', name: 'Group Chat Hype', desc: 'Whenever anyone submits, everyone gets +35 focus.', icon: 'chat', max: 1 },
     { id: 'flowstate', name: 'Flow State', desc: 'Your Flow multiplier lasts 50% longer.', icon: 'star', max: 1 },
     { id: 'snacks', name: 'Snack Stash', desc: 'Friends start every night 6% ahead.', icon: 'pizza', max: 2 },
-  ];
-
-  const ESSAYS = [
-    { prompt: 'Prompt 2: Describe a challenge, setback, or failure.', text: "Ever since I was a small child, I have been passionate about passion. When our robotics team's robot caught fire at regionals, I did not panic. I grabbed the extinguisher and, in that moment, extinguished my own fear. Some would call it a failure. I call it a growth opportunity, a journey, a lesson. As the smoke rose over the gym, I realized that leadership is not about the robot. It is about the people who carry the robot out to the parking lot. Today I carry that lesson everywhere I go, along with a small fire extinguisher. " },
-    { prompt: 'Why do you want to attend our university?', text: "From the moment I stepped onto your campus during a rainy virtual tour, I knew I belonged. Your commitment to interdisciplinary innovation speaks to me on a molecular level. I am especially excited by your Underwater Basket Weaving and Data Science joint major, which combines my two greatest loves: baskets and data. I imagine myself reading under your famous oak tree, which I have looked at on Google Street View eleven times. I am not just applying to a school. I am applying to a feeling. " },
-    { prompt: 'Prompt 5: An accomplishment that sparked personal growth.', text: "When I founded the Miller Branch Library Study Club, it had one member: me. Over three months, I grew it to four members, a 300% increase that I describe as exponential. We met every night at the big tables near the windows. We faced adversity: a rogue Roomba, a raccoon, and one very loud man on speakerphone. Through it all, I learned that the real application was the friends we made along the way. Also, the essays. Mostly the essays. " },
-    { prompt: 'Prompt 7: Topic of your choice.', text: "Let me tell you about the time I learned to love the semicolon; it changed my life. Before, my sentences simply ended. After, they continued; they flowed; they connected ideas that had no business being connected. My English teacher wrote 'please stop' in the margin, which I chose to read as encouragement. In college, I hope to bring this same energy to every seminar, every lab, and every group project; whether they want it or not. " },
   ];
 
   const LIBRARIAN_LINES = ['Library closes at midnight, dears.', 'Shhh.', "Please don't feed the raccoon.", 'Who keeps ordering pizza?', 'The printer has feelings.', 'Running? ...I saw nothing.', 'Phones go in jail. Library law.', 'Good luck on those essays!'];
@@ -115,7 +117,9 @@
       shushCd: 7 * c.shushCd * Math.pow(0.8, u('whistle')),
       type: c.type * (1 + 0.3 * u('keyboard')),
       regen: 1 + 0.6 * u('lofi'),
-      drainMul: Math.pow(0.82, u('headphones')),
+      drainMul: 0.7 * Math.pow(0.82, u('headphones')),
+      grooveFill: 1 + 0.5 * u('lofi'),
+      grooveTime: 10 + 5 * u('encore'),
       interactR: 1 + 0.3 * u('grabby'),
       coffeeCd: u('espresso') ? 6 : 12,
       pep: c.pep,
@@ -128,12 +132,12 @@
   MB.newRun = function (charIdx, mode) {
     MB.run = {
       ch: MB.CHARACTERS[charIdx], charIdx, mode, nightIdx: 0, score: 0, upgrades: {},
-      friends: U.shuffle(MB.FRIENDS).slice(0, 4), records: {}, history: [], snapshot: null,
+      friends: U.shuffle(MB.FRIENDS).slice(0, 4), records: {}, history: [], snapshot: null, extensions: mode === 'endless' ? 3 : 2,
     };
     return MB.run;
   };
   MB.snapshotRun = function (run) {
-    run.snapshot = { score: run.score, records: Object.assign({}, run.records), upgrades: Object.assign({}, run.upgrades), history: run.history.slice() };
+    run.snapshot = { score: run.score, records: Object.assign({}, run.records), upgrades: Object.assign({}, run.upgrades), history: run.history.slice(), extensions: run.extensions };
   };
   MB.restoreRun = function (run) {
     if (!run.snapshot) return;
@@ -141,6 +145,7 @@
     run.records = Object.assign({}, run.snapshot.records);
     run.upgrades = Object.assign({}, run.snapshot.upgrades);
     run.history = run.snapshot.history.slice();
+    run.extensions = run.snapshot.extensions;
   };
 
   // --- the night ----------------------------------------------------------------------------
@@ -160,8 +165,11 @@
       this.students = run.friends.slice(0, def.friends).map((f, i) => new MB.Student(f, Wd.seats.find((s) => s.id === seatOrder[i]), i));
       if (this.has('snacks')) for (const s of this.students) s.progress = 6 * this.has('snacks');
       this.events = [];
-      this.script = def.script.map((x) => x.slice());
-      this.spawnT = 7;
+      this.intro = (def.intro || []).slice();
+      this.wave = { state: 'calm', t: def.waves.first, queue: 0, gapT: 0, settleT: 0 };
+      this.groove = 0;
+      this.grooveT = 0;
+      this.grooves = 0;
       this.flow = 1;
       this.flowT = 0;
       this.bestFlow = 1;
@@ -184,10 +192,7 @@
       this.typeBoostT = 0;
       this.autoStandT = 0;
       this.lastMinute = -1;
-      this.essay = U.pick(ESSAYS);
-      this.essayPos = 0;
-      this.typed = [];
-      this.typos = 0;
+      this.essay = new MB.Essay(this);
       this.libT = U.rand(6, 12);
       this.libLine = null;
       this.libLineT = 0;
@@ -228,13 +233,25 @@
       this.handled++;
       const fast = ev.t < 4.5 && ev.type !== 'pizza';
       this.bumpFlow();
-      const total = Math.round(pts * (fast ? 1.5 : 1) * this.flow);
+      const total = Math.round(pts * (fast ? 1.5 : 1) * this.flow * this.pointMul());
       this.nightScore += total;
       FX.pop(x, y, label, { sub: '+' + total + (this.flow > 1 ? '   x' + this.flow : ''), size: 34 });
       if (fast) FX.text(x, y + 46, 'LIGHTNING FAST!', { size: 16, col: '#9fe0ff', life: 1.2 });
       Au.play('combo', this.flow);
       this.shake(3);
+      // friends nearby appreciate it
+      let thanked = false;
+      for (const s of this.students) {
+        if (s.state !== 'study' || U.dist(s.seat.x, s.seat.y, x, y) > 260) continue;
+        s.focus = Math.min(100, s.focus + 10);
+        if (!thanked && !s.bubble && Math.random() < 0.45) {
+          s.say(U.pick(MB.LINES.thanks), 1.4);
+          FX.icon(s.seat.x, s.seat.y - 80, 'heart', { bg: null, size: 9, vy: -50 });
+          thanked = true;
+        }
+      }
     }
+    pointMul() { return this.grooveT > 0 ? 2 : 1; }
     fail(ev) {
       if (ev.resolved) return;
       ev.resolved = true;
@@ -242,7 +259,7 @@
       ev.end(this);
     }
     addPoints(pts, x, y, label) {
-      const total = Math.round(pts * this.flow);
+      const total = Math.round(pts * this.flow * this.pointMul());
       this.nightScore += total;
       FX.text(x, y, (label ? label + ' ' : '') + '+' + total, { size: 18, col: '#ffe08a' });
       Au.play('coin', null, 0.05);
@@ -278,29 +295,54 @@
       Au.play('whoosh');
       return true;
     }
-    updateSpawns(dt) {
-      while (this.script.length && this.time >= this.script[0][0]) {
-        const [, type] = this.script.shift();
-        if (!this.spawn(type)) this.script.push([this.time + 3, type]);
-        this.script.sort((a, b) => a[0] - b[0]);
-        if (this.script.length && this.script[0][0] <= this.time) break;
-      }
-      this.spawnT -= dt;
-      if (this.spawnT > 0) return;
-      const p = this.p01;
-      let interval = U.lerp(this.def.spawn[0], this.def.spawn[1], Math.pow(p, 0.9));
-      if (p > 0.85) interval *= 0.8;
-      this.spawnT = interval * U.rand(0.75, 1.25);
-      const active = this.events.filter((e) => !e.resolved && !MB.EVENTS[e.type].good).length;
-      if (active >= this.def.maxEv) return;
+    activeTrouble() {
+      return this.events.filter((e) => !e.resolved && !MB.EVENTS[e.type].good).length;
+    }
+    pickType() {
+      // introduce tonight's new distractions one at a time, in order
+      while (this.intro.length && !this.seen.has(this.intro[0]) && this.canSpawn(this.intro[0])) return this.intro.shift();
+      if (this.intro.length && this.seen.has(this.intro[0])) this.intro.shift();
       const opts = this.def.deck.filter((t) => this.canSpawn(t)).map((t) => {
         let w = MB.EVENTS[t].weight;
         if (t === 'phone' && this.has('airplane')) w *= 0.5;
-        if (!this.seen.has(t) && this.def.script.some((s) => s[1] === t)) w *= 0.3;
+        if (this.intro.includes(t)) w = 0;
         return [t, w];
-      });
-      if (!opts.length) return;
-      this.spawn(U.weighted(opts));
+      }).filter((o) => o[1] > 0);
+      return opts.length ? U.weighted(opts) : null;
+    }
+    updateSpawns(dt) {
+      const W = this.wave;
+      if (this.grooveT > 0) return; // groove = guaranteed breather
+      const wv = this.def.waves;
+      if (W.state === 'calm') {
+        W.t -= dt;
+        if (W.t <= 0) {
+          W.state = 'rush';
+          W.queue = U.randi(wv.size[0], wv.size[1]);
+          if (this.p01 > 0.85) W.queue++;
+          W.gapT = 0;
+        }
+      } else if (W.state === 'rush') {
+        W.gapT -= dt;
+        if (W.gapT <= 0) {
+          W.gapT = U.rand(wv.gap[0], wv.gap[1]);
+          if (this.activeTrouble() < this.def.maxEv) {
+            const type = this.pickType();
+            if (type && this.spawn(type)) W.queue--;
+          }
+          if (W.queue <= 0 || W.gapT > 30) {
+            W.state = 'settle';
+            W.settleT = 0;
+          }
+        }
+      } else if (W.state === 'settle') {
+        W.settleT += dt;
+        if (this.activeTrouble() === 0 || W.settleT > 22) {
+          W.state = 'calm';
+          const late = this.p01 > 0.75 ? 0.8 : 1;
+          W.t = U.rand(wv.calm[0], wv.calm[1]) * late;
+        }
+      }
     }
 
     // --- interactions ---------------------------------------------------------------------------
@@ -454,29 +496,8 @@
       for (const e of this.events) if (!e.resolved) n += e.drain(pseudo, this);
       return n;
     }
-    typeKey() {
-      if (this.mySubmitted) return;
-      const p = this.player;
-      const noise = this.noiseAt(Wd.playerSeat);
-      const typo = !this.stats.calm && noise > 4 && Math.random() < Math.min(0.65, noise / 22);
-      let amt = (100 / this.def.myPresses) * this.stats.type * (this.typeBoostT > 0 ? 1.6 : 1);
-      if (typo) amt *= 0.35;
-      this.myProgress = Math.min(100, this.myProgress + amt);
-      const n = U.randi(3, 5);
-      for (let i = 0; i < n; i++) {
-        if (typo) {
-          this.typed.push({ c: U.pick('qwertyuiopasdfghjklzxcvbnm;'.split('')), typo: true });
-        } else {
-          this.typed.push({ c: this.essay.text[this.essayPos % this.essay.text.length] });
-          this.essayPos++;
-        }
-      }
-      if (typo) this.typos++;
-      if (this.typed.length > 600) this.typed.splice(0, this.typed.length - 600);
-      p.typeAnim = 0.12;
-      Au.play('type', null, 0.015);
-      if (Math.random() < 0.08) FX.icon(Wd.playerSeat.x + U.rand(-16, 16), Wd.playerSeat.y - 30, 'star', { bg: null, size: 6, vy: -80 });
-      if (this.myProgress >= 100) this.submitMine();
+    essayPick(i) {
+      if (this.player.seated && this.phase === 'play') this.essay.choose(i);
     }
     doShush() {
       const p = this.player;
@@ -492,12 +513,18 @@
       FX.ring(p.x, p.y - 30, 6, r * 0.7, 'rgba(255,255,255,0.8)', 0.45, 4);
       FX.pop(p.x, p.y - 100, 'SHHHH!', { size: 30, col: '#bfe3ff', life: 0.9 });
       this.shake(4);
-      for (const ev of this.events) if (!ev.resolved) ev.onShush(p.x, p.y, r, this);
       for (const s of this.students) {
         if (s.state === 'study' && U.dist(p.x, p.y, s.seat.x, s.seat.y) < r) {
           s.focus = Math.min(100, s.focus + 8);
           s.immuneT = Math.max(s.immuneT, 1.5);
         }
+      }
+      const before = this.handled;
+      for (const ev of this.events) if (!ev.resolved) ev.onShush(p.x, p.y, r, this);
+      const hits = this.handled - before;
+      if (hits >= 2) {
+        FX.pop(p.x, p.y - 150, 'MULTI-SHUSH x' + hits + '!', { size: 30, col: '#9fe0ff', life: 1.2 });
+        this.addPoints(100 * hits, p.x, p.y - 120);
       }
       if (U.dist(p.x, p.y, 985, 612) < r + 80) {
         this.libLine = 'Nicely done.';
@@ -643,10 +670,21 @@
         def: this.def, endless: this.endless, count, total, quota: this.def.quota, pass, full, grade,
         base: this.nightScore, fullBonus, timeBonus, nightScore, handled: this.handled, bestFlow: this.bestFlow,
         names: [{ name: run.ch.name + ' (you)', ok: this.mySubmitted, look: run.ch.look, progress: this.myProgress }].concat(this.students.map((s) => ({ name: s.name, ok: s.state === 'submitted', look: s.look, progress: s.progress, college: s.college }))),
+        essay: { perfect: this.essay.perfect, written: this.essay.written, best: this.essay.best },
+        grooves: this.grooves,
       };
-      if (pass) {
-        run.score += nightScore;
-        run.history.push({ n: this.def.n, grade, score: nightScore });
+      // a missed quota burns an extension instead of ending the run
+      res.usedExt = false;
+      if (!pass && run.extensions > 0) {
+        run.extensions--;
+        res.usedExt = true;
+      }
+      res.cont = pass || res.usedExt;
+      res.extLeft = run.extensions;
+      res.counted = pass ? nightScore : res.usedExt ? Math.round(nightScore * 0.5) : 0;
+      if (res.cont) {
+        run.score += res.counted;
+        run.history.push({ n: this.def.n, grade, score: res.counted });
         if (this.mySubmitted) run.records.__me = (run.records.__me || 0) + 1;
         for (const s of this.students) if (s.state === 'submitted') run.records[s.name] = (run.records[s.name] || 0) + 1;
       }
@@ -730,13 +768,18 @@
         if (this.autoStandT > 0) {
           this.autoStandT -= dt;
           if (this.autoStandT <= 0) this.standUp();
-        } else if (In.moveHit() || In.hit('dash')) this.standUp();
-        else {
-          for (let i = 0; i < In.typed; i++) this.typeKey();
-          if (In.hit('shush')) {
-            this.standUp();
-            this.doShush();
+        } else if (In.hit('down') || In.hit('dash')) this.standUp();
+        else if (In.hit('shush')) {
+          this.standUp();
+          this.doShush();
+        } else {
+          if (In.hit('left')) this.essay.choose(0);
+          else if (In.hit('up')) this.essay.choose(1);
+          else if (In.hit('right')) this.essay.choose(2);
+          if (In.mouse.clicked && this.cardRects) {
+            this.cardRects.forEach((r, i) => { if (r && U.inRect(In.mouse.x, In.mouse.y, r)) this.essay.choose(i); });
           }
+          if (In.typed) this.essay.speedUp(In.typed);
         }
       } else {
         if (In.hit('dash')) p.tryDash(ix, iy);
@@ -754,11 +797,16 @@
           }
         } else this.hold.p = Math.max(0, this.hold.p - dt * 2);
       }
+      this.essay.update(dt);
       p.update(dt, this, ix, iy);
       if (p.dashing) for (const ev of this.events) if (!ev.resolved) ev.onDash(p, this);
 
       // events
-      for (const ev of this.events) ev.update(dt, this);
+      for (const ev of this.events) {
+        ev.update(dt, this);
+        const life = ev.meta && ev.meta.life;
+        if (life && !ev.resolved && !ev.noExpire && ev.t > life) ev.expire();
+      }
       for (const ev of this.events) if (ev.dead && !ev.resolved) ev.end(this);
       this.events = this.events.filter((e) => !e.dead);
 
@@ -773,23 +821,38 @@
         // local noise drains focus outright; general chaos just eats into recovery
         let local = 0;
         for (const ev of this.events) if (!ev.resolved) local += ev.drain(s, this);
-        const ambient = chaos * 0.4 * this.stats.drainMul;
+        const ambient = chaos * 0.25 * this.stats.drainMul;
         let drain = local > 0.05 ? (local * this.stats.drainMul + ambient) : 0;
         if (s.immuneT > 0) drain = 0;
         s.drainNow = drain;
         if (drain > 0) s.focus -= drain * dt;
-        else s.focus += (7 * this.stats.regen - (s.immuneT > 0 ? 0 : ambient)) * dt;
+        else s.focus += (9 * this.stats.regen * (this.grooveT > 0 ? 2 : 1) - (s.immuneT > 0 ? 0 : ambient)) * dt;
         s.focus = U.clamp(s.focus, 0, 100);
         if (s.focus <= 0 && !s.flags.asleep) {
           s.distract();
           continue;
         }
         if (!s.progressBlocked()) {
-          const f = 0.25 + 0.75 * (s.focus / 100);
-          s.progress += rate * f * (s.boostT > 0 ? 1.5 : 1) * (this.dark ? 0.7 : 1) * dt;
+          const f = 0.4 + 0.6 * (s.focus / 100);
+          s.progress += rate * f * (s.boostT > 0 ? 1.5 : 1) * (this.grooveT > 0 ? 1.5 : 1) * (this.dark ? 0.75 : 1) * dt;
+          if (this.grooveT > 0 && Math.random() < dt * 1.2) FX.icon(s.seat.x + U.rand(-20, 20), s.seat.y - 60, 'note', { bg: null, size: 9, vy: -60 });
           if (s.progress >= 100) this.submitStudent(s);
         }
       }
+
+      // groove: a calm room builds toward GROOVE MODE
+      const wandering = this.students.some((s) => s.state === 'wander' || s.state === 'scroll');
+      if (this.grooveT > 0) {
+        this.grooveT -= dt;
+        if (this.grooveT <= 0) {
+          FX.text(640, 260, 'groove fades... stay chill to bring it back', { size: 18, col: '#ffe9a8', life: 2 });
+          this.wave.state = 'calm';
+          this.wave.t = Math.max(this.wave.t, 4);
+        }
+      } else if (this.activeTrouble() === 0 && !wandering) {
+        this.groove += (dt / 8) * this.stats.grooveFill;
+        if (this.groove >= 1) this.startGroove();
+      } else this.groove = Math.max(0, this.groove - dt / 14);
 
       // librarian chatter
       this.libT -= dt;
@@ -802,8 +865,9 @@
 
       // music + clock
       const p01 = this.p01;
-      const intensity = p01 > 0.9 ? 3 : chaos >= 4 || p01 > 0.7 ? 2 : 1;
-      Au.Music.set({ intensity, bpm: p01 > 0.9 ? 98 : p01 > 0.7 ? 90 : 84 });
+      const trouble = this.activeTrouble();
+      const intensity = p01 > 0.92 ? 3 : this.grooveT > 0 || trouble >= 2 ? 2 : 1;
+      Au.Music.set({ intensity, bpm: p01 > 0.92 ? 96 : this.grooveT > 0 ? 90 : 84 });
       const minute = Math.floor(this.minutes);
       if (minute !== this.lastMinute) {
         if (minute === 120) {
@@ -826,6 +890,22 @@
         }
       }
       if (this.time >= this.duration) this.endNight('midnight');
+    }
+
+    startGroove() {
+      this.groove = 0;
+      this.grooveT = this.stats.grooveTime;
+      this.grooves++;
+      FX.pop(640, 300, 'GROOVE MODE!', { size: 62, col: '#ffd76a', life: 1.8, sub: 'everyone locks in · double points' });
+      Au.play('submit');
+      this.shake(4);
+      for (const s of this.students) {
+        if (s.state === 'study') {
+          s.focus = 100;
+          s.cheerT = 0;
+          if (Math.random() < 0.6) s.say(U.pick(['vibes.', 'LOCKED IN', 'this beat slaps', 'flow state!!', 'we are SO back']), 1.6);
+        }
+      }
     }
 
     // --- render ---------------------------------------------------------------------------------------
@@ -855,6 +935,10 @@
         const seat = Wd.playerSeat;
         list.push({ y: seat.table.y - 1.5, fn: (c) => { A.rr(c, seat.x - 17, seat.y - 54, 34, 44, 9, 777); A.fs(c, '#7b4a8c'); } });
       }
+      for (const seat of Wd.seats) {
+        if (seat === Wd.playerSeat || this.students.some((st) => st.seat === seat)) continue;
+        list.push({ y: seat.table.y - 1.5, fn: (c) => { A.shape(c, () => A.rr(c, seat.x - 17, seat.y - 54, 34, 44, 9, seat.x), A.C.chair, (cc) => { cc.fillStyle = A.C.chairDark; cc.fillRect(seat.x + 6, seat.y - 60, 20, 60); }); } });
+      }
       list.push({ y: p.y, fn: (c) => p.draw(c) });
       list.push({ y: 612, fn: (c) => this.drawLibrarian(c) });
       for (const fi of this.floorItems) list.push({ y: fi.y, fn: (c) => { A.shadow(c, fi.x, fi.y, 14, 4); if (fi.kind === 'pizza') A.pizzaBox(c, fi.x, fi.y, fi.data ? fi.data.slices : 4); else A.bucket(c, fi.x, fi.y, 0.8); } });
@@ -864,6 +948,14 @@
       for (const ev of this.events) ev.drawTop(ctx, this);
       FX.draw(ctx, 'top');
       this.drawLighting(ctx);
+      if (this.grooveT > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const k = Math.min(1, this.grooveT / 1.5, (this.stats.grooveTime - this.grooveT) / 0.6 + 0.2);
+        ctx.fillStyle = `rgba(255,190,90,${(0.1 + 0.05 * Math.sin(this.realT * 4.7)) * k})`;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
       if (this.events.some((e) => e.type === 'alarm' && !e.resolved)) {
         ctx.fillStyle = `rgba(255,30,30,${0.08 + 0.08 * Math.sin(this.realT * 12)})`;
         ctx.fillRect(0, 0, W, H);

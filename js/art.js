@@ -1556,6 +1556,80 @@
         A.star(ctx, 0, 0, 10, 4.5);
         A.fs(ctx, C.yellow, 2);
         break;
+      case 'heart':
+        A.heart(ctx, 0, 0, 7);
+        A.fs(ctx, '#e8577a', 2);
+        break;
+      case 'note':
+        ctx.fillStyle = '#ffd76a';
+        ctx.beginPath();
+        ctx.ellipse(-3, 6, 4.5, 3.5, -0.4, 0, U.TAU);
+        ctx.fill();
+        ctx.stroke();
+        ctx.lineWidth = 2.4;
+        ctx.beginPath();
+        ctx.moveTo(1, 5);
+        ctx.lineTo(1, -9);
+        ctx.quadraticCurveTo(6, -6, 8, -2);
+        ctx.stroke();
+        break;
+      case 'tone-heart':
+        A.heart(ctx, 0, 1, 8);
+        A.fs(ctx, '#e8577a', 2);
+        break;
+      case 'tone-wit':
+        ctx.beginPath();
+        ctx.arc(0, 0, 9, 0, U.TAU);
+        A.fs(ctx, '#f6c945', 2);
+        ctx.fillStyle = A.INK;
+        ctx.beginPath();
+        ctx.arc(-3, -2.5, 1.4, 0, U.TAU);
+        ctx.arc(3, -2.5, 1.4, 0, U.TAU);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 1, 5, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.closePath();
+        ctx.fillStyle = '#8a2b3a';
+        ctx.fill();
+        ctx.stroke();
+        break;
+      case 'tone-grit':
+        ctx.beginPath();
+        ctx.moveTo(0, -11);
+        ctx.quadraticCurveTo(9, -2, 7, 5);
+        ctx.quadraticCurveTo(5, 10, 0, 10);
+        ctx.quadraticCurveTo(-6, 10, -7, 4);
+        ctx.quadraticCurveTo(-8, -2, -3, -5);
+        ctx.quadraticCurveTo(-2, -1, 0, 0);
+        ctx.quadraticCurveTo(-1, -6, 0, -11);
+        A.fs(ctx, '#f08a3c', 2);
+        ctx.fillStyle = '#f6c945';
+        ctx.beginPath();
+        ctx.ellipse(0, 5, 3, 4, 0, 0, U.TAU);
+        ctx.fill();
+        break;
+      case 'tone-cliche':
+        A.rr(ctx, -8, -9, 16, 18, 2, 18, 0.2);
+        A.fs(ctx, '#d8cfd8', 2);
+        ctx.strokeStyle = '#8a7a90';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(-5, -4 + i * 4);
+          ctx.lineTo(5, -4 + i * 4);
+          ctx.stroke();
+        }
+        break;
+      case 'ticket':
+        A.rr(ctx, -11, -7, 22, 14, 3, 19, 0.2);
+        A.fs(ctx, '#f08a3c', 2);
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath();
+        ctx.moveTo(4, -6);
+        ctx.lineTo(4, 6);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        break;
     }
     ctx.restore();
   };

@@ -498,6 +498,7 @@
     const items = [
       { label: 'START STUDYING', sub: '5-night campaign · the Nov 1 deadline', go: () => MB.go(S.select('campaign')) },
       { label: 'ROLLING ADMISSIONS', sub: 'endless nights · chase a high score', go: () => MB.go(S.select('endless')) },
+      { label: 'TUTORIAL', sub: 'orientation night with Ms. Okafor', go: () => { const run = MB.newRun(U.store.get('char', 0), 'campaign'); MB.go(new MB.Tutorial(run, () => MB.go(S.title()))); } },
       { label: 'HOW TO PLAY', go: () => MB.go(S.howto(S.title)) },
       { label: 'SETTINGS', go: () => MB.go(S.settings(S.title)) },
     ];
@@ -535,7 +536,7 @@
         ctx.restore();
         A.text(ctx, 'sound on for the full lo-fi experience', 330, 458, { size: 18, font: A.F.hand, color: '#e8d8ff', outline: 4 });
       } else {
-        st.rects = items.map((it, i) => drawMenuItem(ctx, it.label, 110, 330 + i * 72, st.sel === i, st.t, st.sel === i ? it.sub : null));
+        st.rects = items.map((it, i) => drawMenuItem(ctx, it.label, 110, 318 + i * 64, st.sel === i, st.t, st.sel === i ? it.sub : null));
       }
       const best = U.store.get('best', {});
       const bits = [];
@@ -562,7 +563,8 @@
         Au.play('confirm');
         U.store.set('char', st.sel);
         const run = MB.newRun(st.sel, mode);
-        MB.go(S.intro(run));
+        if (mode === 'campaign') MB.go(new MB.Tutorial(run, () => MB.go(S.intro(run))));
+        else MB.go(S.intro(run));
       }
     };
     st.draw = (ctx) => {
@@ -674,9 +676,10 @@
         'Tonight: ' + def.task,
         'Get ' + def.quota + ' of ' + (def.friends + 1) + ' applications in before midnight.',
       ];
+      lines.push('Extensions left: ' + (run.extensions || 0) + ' (a missed quota uses one)');
       if (nightsLeft != null) lines.push(nightsLeft === 0 ? 'THE DEADLINE IS TONIGHT. Happy Halloween.' : nightsLeft + (nightsLeft === 1 ? ' night' : ' nights') + ' until the Nov 1 deadline.');
       else lines.push('Every distraction is fair game. Score: ' + U.fmtNum(run.score));
-      lines.forEach((l, i) => A.text(ctx, l, 0, -ch / 2 + 238 + i * 28, { size: 21, font: A.F.hand, color: i === 2 && nightsLeft === 0 ? '#d23c34' : A.INK, outline: 0 }));
+      lines.forEach((l, i) => A.text(ctx, l, 0, -ch / 2 + 232 + i * 26, { size: 20, font: A.F.hand, color: i === 3 && nightsLeft === 0 ? '#d23c34' : i === 2 ? '#d8733a' : A.INK, outline: 0 }));
       // new distractions
       if (shown.length) {
         A.text(ctx, 'NEW DISTRACTIONS', 0, -ch / 2 + 340, { size: 20, color: '#c94f3d', outline: 0 });
@@ -721,16 +724,18 @@
       ['Night points', U.fmtNum(res.base)],
       ['Full house bonus', res.fullBonus ? '+' + U.fmtNum(res.fullBonus) : '—'],
       ['Early finish bonus', res.timeBonus ? '+' + U.fmtNum(res.timeBonus) : '—'],
+      ['Essay lines that wowed', res.essay ? res.essay.perfect + ' / ' + res.essay.written : '—'],
+      ['Groove modes', String(res.grooves || 0)],
     ];
     let options;
-    if (res.pass) {
+    if (res.cont) {
       options = finalNight ? [{ label: 'OPEN DECISION LETTERS', go: () => MB.go(S.ending()) }] : [{ label: 'PICK A STUDY HACK', go: () => MB.go(S.upgrade()) }];
     } else if (res.endless) {
       options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.select('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     } else {
       options = [{ label: 'RETRY THE NIGHT', go: () => { MB.restoreRun(run); MB.go(S.intro(run)); } }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     }
-    if (res.endless) saveBest('endless', run.score, run.nightIdx + (res.pass ? 1 : 0));
+    if (res.endless) saveBest('endless', run.score, run.nightIdx + (res.cont ? 1 : 0));
     st.update = (dt) => {
       st.t += dt;
       const stampAt = 0.6 + rows.length * 0.35 + 0.4;
@@ -738,8 +743,8 @@
         st.stamped = true;
         Au.play('stamp');
         st.shake = 10;
-        if (res.pass) {
-          FX.confetti(W / 2 + 240, 400, 60);
+        if (res.cont) {
+          FX.confetti(W / 2 + 240, 400, res.pass ? 60 : 20);
           Au.play(res.grade.startsWith('A') ? 'submit' : 'ding');
         } else Au.play('fail');
       }
@@ -759,7 +764,7 @@
       S.drawBackdrop(ctx, st.t, 0.65);
       ctx.save();
       if (st.shake) ctx.translate(U.rand(-st.shake, st.shake), U.rand(-st.shake, st.shake));
-      const cw = 860, ch = 560;
+      const cw = 860, ch = 600;
       const k = U.ease.outBack(U.clamp(st.t / 0.45, 0, 1));
       ctx.translate(W / 2, H / 2 - 20 + (1 - k) * 300);
       ctx.rotate(0.012);
@@ -801,7 +806,7 @@
       rows.forEach((r, i) => {
         const appear = U.clamp((st.t - 0.6 - i * 0.35) / 0.25, 0, 1);
         if (appear <= 0) return;
-        const y = -ch / 2 + 130 + i * 40;
+        const y = -ch / 2 + 130 + i * 34;
         ctx.save();
         ctx.globalAlpha = appear;
         A.text(ctx, r[0], -20, y, { size: 20, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'left' });
@@ -815,12 +820,18 @@
         A.text(ctx, r[1], cw / 2 - 40, y, { size: 20, color: A.INK, outline: 0, align: 'right' });
         ctx.restore();
       });
-      const ty = -ch / 2 + 130 + rows.length * 40 + 10;
+      const ty = -ch / 2 + 130 + rows.length * 34 + 10;
       if (st.t > 0.6 + rows.length * 0.35) {
         A.text(ctx, 'NIGHT TOTAL', -20, ty, { size: 24, color: A.INK, outline: 0, align: 'left' });
-        A.text(ctx, U.fmtNum(res.pass ? res.nightScore : 0), cw / 2 - 40, ty, { size: 28, color: res.pass ? '#3f8f5e' : '#c94f3d', outline: 0, align: 'right' });
+        A.text(ctx, U.fmtNum(res.counted), cw / 2 - 40, ty, { size: 28, color: res.cont ? '#3f8f5e' : '#c94f3d', outline: 0, align: 'right' });
         A.text(ctx, 'RUN SCORE ' + U.fmtNum(run.score), cw / 2 - 40, ty + 34, { size: 18, color: A.C.inkSoft, outline: 0, align: 'right' });
-        if (!res.pass) A.text(ctx, 'not counted: quota missed', -20, ty + 34, { size: 16, font: A.F.hand, color: '#c94f3d', outline: 0, align: 'left' });
+        if (res.usedExt) A.text(ctx, 'half points: extension used', -20, ty + 34, { size: 16, font: A.F.hand, color: '#d8733a', outline: 0, align: 'left' });
+        else if (!res.cont) A.text(ctx, 'not counted: quota missed', -20, ty + 34, { size: 16, font: A.F.hand, color: '#c94f3d', outline: 0, align: 'left' });
+        if (res.essay && res.essay.best) {
+          ctx.font = `17px ${A.F.script}`;
+          A.text(ctx, 'Best line tonight:', -20, ty + 66, { size: 15, color: A.C.inkSoft, outline: 0, align: 'left' });
+          A.wrap(ctx, '“' + res.essay.best + '”', 380).slice(0, 2).forEach((l, i) => A.text(ctx, l, -20, ty + 90 + i * 22, { size: 21, font: A.F.script, color: '#2f5d8a', outline: 0, align: 'left' }));
+        }
       }
       // stamp
       if (st.stamped) {
@@ -843,7 +854,18 @@
         ctx.stroke();
         A.text(ctx, res.pass ? res.grade : 'F', 0, 2, { size: 64, color: col, outline: 0 });
         ctx.restore();
-        if (!res.pass) {
+        if (res.usedExt) {
+          ctx.save();
+          ctx.translate(-cw / 2 + 250, ch / 2 - 84);
+          ctx.scale(sc, sc);
+          ctx.rotate(-0.1);
+          ctx.globalAlpha = sk * 0.95;
+          A.rr(ctx, -190, -46, 380, 92, 8, 411, 1);
+          A.fs(ctx, null, 6, '#d8733a');
+          A.text(ctx, 'EXTENSION', 0, -6, { size: 52, color: '#d8733a', outline: 0 });
+          A.text(ctx, 'quota missed · ' + res.extLeft + ' extension' + (res.extLeft === 1 ? '' : 's') + ' left', 0, 30, { size: 16, color: '#d8733a', outline: 0 });
+          ctx.restore();
+        } else if (!res.pass) {
           ctx.save();
           ctx.translate(-cw / 2 + 250, ch / 2 - 84);
           ctx.scale(sc, sc);
@@ -1099,7 +1121,7 @@
         [['SHIFT'], 'DASH: flip roombas, bonk birds, tackle raccoons'],
         [['Q'], 'SHHH: silences talkers, gossips, toddlers, ghosts'],
         [['SPACE'], 'do things: confiscate, fix, grab, pep talk, sit'],
-        [['ANY KEY'], 'while seated: mash to write your own essay'],
+        [['←', '↑', '→'], 'while seated: pick your next essay line  ·  ↓ stand'],
         [['ESC'], 'pause    ·    M: mute'],
       ];
       keys.forEach((k, i) => {
@@ -1117,8 +1139,8 @@
       const tips = [
         ['FOCUS RING', 'Noise drains it. At zero, a friend wanders off to doomscroll. Walk up and pep talk them back.'],
         ['PROGRESS', 'Focused friends write faster. A full bar means SUBMITTED. Miss the nightly quota and you are deferred.'],
-        ['YOUR ESSAY', 'Yours only moves while you sit and type. Noise near your seat causes typos.'],
-        ['FLOW', 'Fix things fast and back to back to multiply points, up to x8.'],
+        ['YOUR ESSAY', 'Sit down and pick lines that match what the admissions reader craves: HEART, WIT or GRIT. Skip the clichés.'],
+        ['GROOVE + FLOW', 'A calm library fills the Groove meter: everyone speeds up and points double. Fix things fast to build Flow.'],
         ['COFFEE + PIZZA', 'Coffee wakes nappers and boosts anyone, you included. Share pizza slices for instant focus.'],
       ];
       const RX = 40;

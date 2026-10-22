@@ -56,11 +56,12 @@
   // Collision rects
   Wd.rects = [];
   const addRect = (r, pad = 0) => Wd.rects.push({ x: r.x - pad, y: r.y - pad, w: r.w + pad * 2, h: r.d + pad * 2 });
-  Wd.tables.forEach((t) => addRect(t));
+  Wd.tables.forEach((t) => Wd.rects.push({ x: t.x + 4, y: t.y + 4, w: t.w - 8, h: t.d - 8 }));
   Wd.shelves.forEach((s) => addRect(s));
   ['printer', 'vending', 'router', 'cart', 'desk', 'bookReturn'].forEach((k) => addRect(Wd.stations[k]));
   Wd.decor.forEach((d) => addRect(d));
-  Wd.seats.forEach((s) => Wd.rects.push({ x: s.x - 17, y: s.y - 24, w: 34, h: 22, seat: s }));
+  // every seat always has a visible chair, so its collider is never invisible
+  Wd.seats.forEach((s) => Wd.rects.push({ x: s.x - 15, y: s.y - 22, w: 30, h: 18, seat: s }));
 
   Wd.blocked = function (x, y, r = 10) {
     const b = Wd.bounds;
@@ -72,7 +73,9 @@
   };
 
   // Move a circle with axis-separated collision; returns true if it hit something.
-  Wd.moveCircle = function (o, dx, dy, r = 11, allowExit = false) {
+  // Swept circle move with axis separation. `slip` nudges the mover around corners
+  // so brushing past furniture glides instead of snagging.
+  Wd.moveCircle = function (o, dx, dy, r = 11, allowExit = false, slip = false) {
     let hit = false;
     const test = (x, y) => {
       const b = Wd.bounds;
@@ -81,13 +84,39 @@
       for (const R of Wd.rects) if (U.circleRect(x, y, r, R.x, R.y, R.w, R.h)) return true;
       return false;
     };
-    if (dx) {
-      if (!test(o.x + dx, o.y)) o.x += dx;
-      else hit = true;
-    }
-    if (dy) {
-      if (!test(o.x, o.y + dy)) o.y += dy;
-      else hit = true;
+    const n = Math.max(1, Math.ceil(Math.max(Math.abs(dx), Math.abs(dy)) / 3));
+    const sx = dx / n, sy = dy / n;
+    const nudge = (axis, step) => {
+      for (const off of [3, 6, 9, 13]) {
+        for (const sg of [1, -1]) {
+          if (axis === 'x') {
+            if (!test(o.x, o.y + sg * off) && !test(o.x + step, o.y + sg * off)) {
+              o.y += sg * Math.min(off, Math.abs(step) + 1);
+              return true;
+            }
+          } else if (!test(o.x + sg * off, o.y) && !test(o.x + sg * off, o.y + step)) {
+            o.x += sg * Math.min(off, Math.abs(step) + 1);
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+    for (let i = 0; i < n; i++) {
+      if (sx) {
+        if (!test(o.x + sx, o.y)) o.x += sx;
+        else {
+          hit = true;
+          if (slip && Math.abs(sx) >= Math.abs(sy)) nudge('x', sx);
+        }
+      }
+      if (sy) {
+        if (!test(o.x, o.y + sy)) o.y += sy;
+        else {
+          hit = true;
+          if (slip && Math.abs(sy) > Math.abs(sx)) nudge('y', sy);
+        }
+      }
     }
     return hit;
   };

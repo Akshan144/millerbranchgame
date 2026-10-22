@@ -28,6 +28,16 @@
     onDash() {}
     slowAt() { return 1; }
     end() {}
+    // Ignored long enough, every distraction sorts itself out (you just miss the points).
+    expire() {
+      if (this.resolved) return;
+      this.expired = true;
+      const a = this.alert() || { x: 640, y: 300 };
+      this.g.fail(this);
+      FX.text(a.x, a.y + 14, this.meta.gone || 'it passed', { size: 15, col: '#e2d8ea', life: 1.6 });
+      this.onExpire();
+    }
+    onExpire() { this.dead = true; }
   }
 
   // 1. Phone buzz ---------------------------------------------------------------
@@ -57,7 +67,7 @@
     }
     drain(st) {
       if (this.resolved) return 0;
-      if (st === this.target) return 13;
+      if (st === this.target) return 10;
       return U.dist(st.seat.x, st.seat.y, this.target.seat.x, this.target.seat.y) < 140 ? 2 : 0;
     }
     interactables() {
@@ -150,6 +160,10 @@
     onShush(x, y, r) {
       if (U.dist(x, y, this.npc.x, this.npc.y) < r) this.shushed('SHHH!');
     }
+    onExpire() {
+      this.state = 'leave';
+      this.npc.goTo(Wd.entrance.x, Wd.entrance.y);
+    }
     draw(list) {
       const n = this.npc;
       list.push({
@@ -213,7 +227,7 @@
         if (s.state !== 'study') continue;
         if (U.dist(this.x, this.y, s.seat.x, s.seat.y - 12) < 50 && (this.cd.get(s) || 0) <= this.t) {
           this.cd.set(s, this.t + 2.5);
-          s.focus = Math.max(0, s.focus - 12);
+          s.focus = Math.max(0, s.focus - 8);
           s.shockT = 0.8;
           s.say(U.pick(MB.LINES.hurt), 1.2);
           FX.paper(s.seat.x, s.seat.y - 30, 3);
@@ -251,6 +265,7 @@
       Au.play('tackle');
       this.g.resolve(this, 150, 'FLIPPED!', this.x, this.y - 50);
     }
+    onExpire() { this.flipped = true; }
     onShush(x, y, r) {
       if (!this.flipped && U.dist(x, y, this.x, this.y) < r) {
         this.stunT = 2.2;
@@ -311,11 +326,18 @@
       for (const st of this.g.students) {
         if (st.state !== 'study') continue;
         if (U.dist(st.seat.x, st.seat.y, s.x + s.w / 2, s.y) < 420) {
-          st.focus = Math.max(0, st.focus - 20);
+          st.focus = Math.max(0, st.focus - 12);
           st.shockT = 1;
         }
       }
       FX.pop(s.x + s.w / 2, s.y - 60, 'CRASH!', { size: 44, col: '#f08a3c' });
+    }
+    onExpire() {
+      const s = this.shelf;
+      for (const p of this.piles) FX.arc(p.x, p.y - 10, s.x + U.rand(20, s.w - 20), s.y - s.h + 40, 'book', { life: 0.5, height: 70, col: U.pick(A.C.books) });
+      this.piles = [];
+      this.prop.shake = 0;
+      this.dead = true;
     }
     slowAt(x, y) {
       for (const p of this.piles) if (U.dist(x, y, p.x, p.y) < 26) return 0.5;
@@ -571,6 +593,7 @@
     onShush(x, y, r) {
       for (const b of this.birds) if (!b.out && U.dist(x, y, b.x, b.gy) < r) this.flee(b);
     }
+    onExpire() { for (const b of this.birds) b.out = true; }
     drain(st) {
       if (this.resolved) return 0;
       let d = 0;
@@ -668,6 +691,10 @@
       } }];
     }
     alert() { return this.resolved ? null : { x: this.target.seat.x + 26, y: this.target.seat.y - 104 }; }
+    onExpire() {
+      this.target.say('*yawn* ...where was i', 1.6);
+      this.dead = true;
+    }
     end() { if (this.target) this.target.flags.asleep = false; }
   }
 
@@ -804,6 +831,10 @@
       }
       return d;
     }
+    onExpire() {
+      for (const k of this.kids) if (k.state !== 'held') FX.dust(k.x, k.y, 5);
+      this.dead = true;
+    }
     onShush(x, y, r) {
       for (const k of this.kids) {
         if (k.state === 'run' && U.dist(x, y, k.x, k.y) < r) {
@@ -887,13 +918,13 @@
       if (this.puddle >= 1) {
         this.puddle = 0.35;
         const s = this.target;
-        s.progress = Math.max(0, s.progress - 6);
+        s.progress = Math.max(0, s.progress - 4);
         s.shockT = 1;
         s.say('MY LAPTOP!!', 1.6);
         FX.sparks(s.seat.x, this.spot.y - 20, 16, '#9fd8ff');
         Au.play('zap');
         this.g.shake(6);
-        FX.text(s.seat.x, s.seat.y - 110, '-6% PROGRESS', { size: 18, col: '#ff9a8a' });
+        FX.text(s.seat.x, s.seat.y - 110, '-4% PROGRESS', { size: 18, col: '#ff9a8a' });
       }
     }
     drain(st) {
@@ -1011,7 +1042,7 @@
     }
     drain(st) {
       if (this.resolved || this.state !== 'chat') return 0;
-      if (st === this.target) return 16;
+      if (st === this.target) return 12;
       return U.dist(st.seat.x, st.seat.y, this.npc.x, this.npc.y) < 130 ? 3 : 0;
     }
     interactables() {
@@ -1020,6 +1051,11 @@
     }
     onShush(x, y, r) {
       if (U.dist(x, y, this.npc.x, this.npc.y) < r) this.send('SHOO!');
+    }
+    onExpire() {
+      this.state = 'leave';
+      this.target.flags.chat = false;
+      this.npc.goTo(Wd.entrance.x, Wd.entrance.y);
     }
     draw(list) {
       const n = this.npc;
@@ -1061,6 +1097,11 @@
       this.g.resolve(this, 220, 'LIGHTS ON!', b.x, b.y + 40);
     }
     drain() { return this.resolved ? 0 : 3; }
+    onExpire() {
+      Au.play('powerup');
+      this.g.flicker = 0.6;
+      this.dead = true;
+    }
     interactables() {
       if (this.resolved) return [];
       const b = Wd.stations.breaker;
@@ -1129,7 +1170,7 @@
       this.w.goTo(s.x + (s.side ? -34 : 34), s.y + 4);
       this.state = 'sneak';
       this.stealT = 1.1;
-      this.escapeT = 24;
+      this.escapeT = 18;
       this.usb = false;
       this.chitT = 0;
       FX.dust(this.home.x, this.home.y, 6);
@@ -1181,9 +1222,9 @@
           this.dead = true;
           if (this.state === 'escape' && !this.resolved) {
             this.target.flags.usb = false;
-            this.target.progress = Math.max(0, this.target.progress - 10);
-            this.target.say('it had my only copy...', 2.4);
-            FX.text(this.target.seat.x, this.target.seat.y - 110, '-10% PROGRESS', { size: 18, col: '#ff9a8a' });
+            this.target.progress = Math.max(0, this.target.progress - 4);
+            this.target.say('ugh. rewriting the last page...', 2.4);
+            FX.text(this.target.seat.x, this.target.seat.y - 110, '-4% PROGRESS', { size: 18, col: '#ff9a8a' });
             this.g.fail(this);
           }
         }
@@ -1296,26 +1337,27 @@
     lights(L) {
       if (!this.resolved) L.push({ x: this.x, y: this.y - 40, r: 140, c: 'rgba(190,170,255,0.55)', glow: 'rgba(200,180,255,0.25)' });
     }
+    onExpire() {} // fades out on its own
     alert() { return this.resolved ? null : { x: this.x, y: this.y - 100 }; }
   }
 
   const studyTarget = (g) => !!g.pickStudent((s) => !s.flags.phone && !s.flags.asleep && !s.flags.chat);
   MB.EVENTS = {
-    phone: { cls: PhoneEv, name: 'Phone Buzz', icon: 'phone', hint: 'Walk up + SPACE to confiscate it', night: 1, weight: 10, max: 2, need: studyTarget },
-    talker: { cls: TalkerEv, name: 'Loud Talker', icon: 'talk', hint: 'Shush them: SPACE up close, or Q', night: 1, weight: 8, max: 2 },
-    roomba: { cls: RoombaEv, name: 'Rogue Roomba', icon: 'roomba', hint: 'DASH (SHIFT) into it to flip it', night: 1, weight: 6, max: 1 },
-    avalanche: { cls: AvalancheEv, name: 'Book Avalanche', icon: 'books', hint: 'Mash SPACE on each pile to reshelve', night: 1, weight: 6, max: 1 },
-    printer: { cls: PrinterEv, name: 'Printer Jam', icon: 'printer', hint: 'Hit SPACE when the needle is in the green', night: 2, weight: 6, max: 1 },
-    wifi: { cls: WifiEv, name: 'Wi-Fi Down', icon: 'wifi', hint: 'HOLD SPACE at the router (back left)', night: 2, weight: 5, max: 1 },
-    birds: { cls: BirdsEv, name: 'Pigeon Invasion', icon: 'bird', hint: 'DASH into every bird', night: 2, weight: 5, max: 1 },
-    sleeper: { cls: SleeperEv, name: 'Senioritis Nap', icon: 'zzz', hint: 'Bring vending coffee, or mash SPACE', night: 2, weight: 6, max: 1, need: studyTarget },
+    phone: { cls: PhoneEv, name: 'Phone Buzz', icon: 'phone', hint: 'Walk up + SPACE to confiscate it', night: 1, weight: 10, max: 2, need: studyTarget, life: 16, gone: 'phone put away' },
+    talker: { cls: TalkerEv, name: 'Loud Talker', icon: 'talk', hint: 'Shush them: SPACE up close, or Q', night: 1, weight: 8, max: 2, life: 18, gone: 'call ended' },
+    roomba: { cls: RoombaEv, name: 'Rogue Roomba', icon: 'roomba', hint: 'DASH (SHIFT) into it to flip it', night: 1, weight: 6, max: 1, life: 22, gone: 'battery died' },
+    avalanche: { cls: AvalancheEv, name: 'Book Avalanche', icon: 'books', hint: 'Mash SPACE on each pile to reshelve', night: 1, weight: 6, max: 1, life: 32, gone: 'Ms. Okafor tidied up' },
+    printer: { cls: PrinterEv, name: 'Printer Jam', icon: 'printer', hint: 'Hit SPACE when the needle is in the green', night: 2, weight: 6, max: 1, life: 22, gone: 'printer gave up' },
+    wifi: { cls: WifiEv, name: 'Wi-Fi Down', icon: 'wifi', hint: 'HOLD SPACE at the router (back left)', night: 2, weight: 5, max: 1, life: 20, gone: 'router rebooted itself' },
+    birds: { cls: BirdsEv, name: 'Pigeon Invasion', icon: 'bird', hint: 'DASH into every bird', night: 2, weight: 5, max: 1, life: 22, gone: 'birds flew off' },
+    sleeper: { cls: SleeperEv, name: 'Senioritis Nap', icon: 'zzz', hint: 'Bring vending coffee, or mash SPACE', night: 2, weight: 6, max: 1, need: studyTarget, life: 24, gone: 'woke up on their own' },
     pizza: { cls: PizzaEv, name: 'Pizza Delivery', icon: 'pizza', hint: 'Grab it, share slices for +focus', night: 2, weight: 3, max: 1, good: true },
-    toddlers: { cls: ToddlersEv, name: 'Storytime Escape', icon: 'toddler', hint: 'Grab toddlers, carry them to the rug', night: 3, weight: 5, max: 1 },
-    leak: { cls: LeakEv, name: 'Ceiling Leak', icon: 'drop', hint: 'Bring a bucket from the janitor cart', night: 3, weight: 5, max: 1, need: (g) => !!g.pickStudent((s) => !s.flags.leak) },
-    gossip: { cls: GossipEv, name: 'The Gossip', icon: 'chat', hint: 'SPACE to send them off before they sit', night: 3, weight: 6, max: 1, need: (g) => !!g.pickStudent((s) => !s.flags.chat) },
-    outage: { cls: OutageEv, name: 'Power Outage', icon: 'bolt', hint: 'HOLD SPACE at the breaker (stone wall)', night: 4, weight: 4, max: 1, excl: ['alarm'] },
-    alarm: { cls: AlarmEv, name: 'Fire Alarm', icon: 'alarm', hint: 'Punch the arrow code into the red panel', night: 4, weight: 4, max: 1, excl: ['outage'] },
+    toddlers: { cls: ToddlersEv, name: 'Storytime Escape', icon: 'toddler', hint: 'Grab toddlers, carry them to the rug', night: 3, weight: 5, max: 1, life: 26, gone: 'a parent scooped them up' },
+    leak: { cls: LeakEv, name: 'Ceiling Leak', icon: 'drop', hint: 'Bring a bucket from the janitor cart', night: 3, weight: 5, max: 1, need: (g) => !!g.pickStudent((s) => !s.flags.leak), life: 26, gone: 'the leak stopped' },
+    gossip: { cls: GossipEv, name: 'The Gossip', icon: 'chat', hint: 'SPACE to send them off before they sit', night: 3, weight: 6, max: 1, need: (g) => !!g.pickStudent((s) => !s.flags.chat), life: 24, gone: 'gossip got bored' },
+    outage: { cls: OutageEv, name: 'Power Outage', icon: 'bolt', hint: 'HOLD SPACE at the breaker (stone wall)', night: 4, weight: 4, max: 1, excl: ['alarm'], life: 18, gone: 'power came back' },
+    alarm: { cls: AlarmEv, name: 'Fire Alarm', icon: 'alarm', hint: 'Punch the arrow code into the red panel', night: 4, weight: 4, max: 1, excl: ['outage'], life: 16, gone: 'alarm timed out' },
     raccoon: { cls: RaccoonEv, name: 'Raccoon Heist', icon: 'raccoon', hint: 'DASH into it to get the USB back', night: 4, weight: 5, max: 1, need: (g) => !!g.pickStudent((s) => !s.flags.usb) },
-    ghost: { cls: GhostEv, name: 'Library Ghost', icon: 'ghost', hint: 'Only a SHHH (Q) works on ghosts', night: 5, weight: 5, max: 1 },
+    ghost: { cls: GhostEv, name: 'Library Ghost', icon: 'ghost', hint: 'Only a SHHH (Q) works on ghosts', night: 5, weight: 5, max: 1, life: 22, gone: 'ghost drifted off' },
   };
 })(window.MB);

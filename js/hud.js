@@ -49,14 +49,15 @@
 
   HUD.draw = function (ctx, g) {
     drawStudentUI(ctx, g);
-    drawAlerts(ctx, g);
     drawPlayerUI(ctx, g);
-    FX.draw(ctx, 'ui');
     drawClock(ctx, g);
+    drawStatus(ctx, g);
     drawQuota(ctx, g);
     drawScore(ctx, g);
     drawAbilities(ctx, g);
     drawEssay(ctx, g);
+    drawAlerts(ctx, g);
+    FX.draw(ctx, 'ui');
     drawBanners(ctx, g);
     if (g.minigame) drawMinigame(ctx, g);
     if (g.phase === 'countdown') drawCountdown(ctx, g);
@@ -173,6 +174,19 @@
       ctx.arc(0, 0, 16 + pulse * 14, 0, U.TAU);
       ctx.stroke();
       const meta = MB.EVENTS[ev.type];
+      if (meta.life) {
+        const left = U.clamp(1 - ev.t / meta.life, 0, 1);
+        ctx.strokeStyle = 'rgba(43,27,51,0.6)';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, 0, U.TAU);
+        ctx.stroke();
+        ctx.strokeStyle = left > 0.35 ? '#ffe08a' : '#ff9a8a';
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 20, -Math.PI / 2, -Math.PI / 2 + U.TAU * left);
+        ctx.stroke();
+      }
       const icon = ev.type === 'birds' && g.def.halloween ? 'bat' : meta.icon;
       A.icon(ctx, icon, 0, 0, 16, meta.good ? '#e8ffd8' : '#fffaf0');
       // tail
@@ -269,12 +283,50 @@
     ctx.restore();
   }
 
+  // Groove meter / wave status, tucked under the clock card
+  function drawStatus(ctx, g) {
+    if (g.tutorialNoStatus) return;
+    const x = 26, y = 116, w = 200, h = 26;
+    const trouble = g.activeTrouble();
+    A.rr(ctx, x + 2, y + 3, w, h, 10, 130, 0.4);
+    A.fs(ctx, 'rgba(20,8,30,0.45)', 0);
+    A.rr(ctx, x, y, w, h, 10, 131, 0.4);
+    A.fs(ctx, '#3a2a44', 2.6);
+    ctx.save();
+    A.rr(ctx, x, y, w, h, 10, 131, 0.4);
+    ctx.clip();
+    if (g.grooveT > 0) {
+      const k = g.grooveT / g.stats.grooveTime;
+      ctx.fillStyle = '#f6c945';
+      ctx.fillRect(x, y, w * k, h);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      const off = (g.realT * 60) % 20;
+      for (let i = -20; i < w; i += 20) ctx.fillRect(x + i + off, y, 6, h);
+    } else {
+      ctx.fillStyle = '#c99a2e';
+      ctx.fillRect(x, y, w * g.groove, h);
+    }
+    ctx.restore();
+    A.rr(ctx, x, y, w, h, 10, 131, 0.4);
+    A.fs(ctx, null, 2.6);
+    A.icon(ctx, 'note', x + 16, y + h / 2, 10, null);
+    let label, col = '#fff6e6';
+    if (g.grooveT > 0) {
+      label = 'GROOVE MODE ' + Math.ceil(g.grooveT) + 's';
+      col = '#2b1b33';
+    } else if (trouble > 0) {
+      label = 'TROUBLE! fix it to groove';
+      col = '#ffb3a6';
+    } else label = 'CALM · groove building';
+    A.text(ctx, label, x + 30, y + h / 2 + 1, { size: 14, color: col, outline: g.grooveT > 0 ? 0 : 3, align: 'left' });
+  }
+
   function drawQuota(ctx, g) {
     const cx = W / 2;
     // ribbon
     ctx.save();
     ctx.translate(cx, 26);
-    const label = (g.endless ? 'ROLLING ' + g.def.endlessIdx : 'NIGHT ' + g.def.n) + ' · ' + g.def.title.toUpperCase();
+    const label = g.endless ? 'ROLLING ADMISSIONS · NIGHT ' + g.def.endlessIdx : 'NIGHT ' + g.def.n + ' · ' + g.def.title.toUpperCase();
     ctx.font = `20px ${A.F.display}`;
     const w = ctx.measureText(label).width + 50;
     A.poly(ctx, [[-w / 2 - 18, 4], [-w / 2, -14], [w / 2, -14], [w / 2 + 18, 4], [w / 2, 16], [-w / 2, 16]], 30, 0.6);
@@ -317,6 +369,9 @@
     A.rr(ctx, tx, 54, 84, 26, 8, 50, 0.5);
     A.fs(ctx, met ? '#6cbf6a' : '#fffaf0', 2.5);
     A.text(ctx, met ? 'QUOTA MET' : 'NEED ' + g.def.quota, tx + 42, 68, { size: 14, color: met ? '#fff' : A.INK, outline: 0 });
+    const ext = g.run.extensions || 0;
+    for (let i = 0; i < ext; i++) A.icon(ctx, 'ticket', tx + 104 + i * 26, 67, 11, null);
+
   }
 
   function drawScore(ctx, g) {
@@ -394,12 +449,14 @@
 
   // --- essay ------------------------------------------------------------------------------
   let essayAnim = 0;
-  let wrapCache = { len: -1, lines: [] };
+  const READER = { skin: '#c98e64', hair: '#5a3a22', hairStyle: 'short', top: '#2f5d8a', top2: '#e0524a', acc: 'glasses2', seed: 95 };
   function drawEssay(ctx, g) {
     const p = g.player;
+    const E = g.essay;
     const target = p.seated ? 1 : 0;
-    essayAnim = U.approach(essayAnim, target, 1 / 60 * 7);
+    essayAnim = U.approach(essayAnim, target, (1 / 60) * 6);
     const k = U.ease.outCubic(essayAnim);
+    g.cardRects = null;
     // compact bar
     const cw = 400, cx0 = W / 2 - cw / 2 + 30, by = H - 46 + k * 80;
     if (k < 1) {
@@ -408,20 +465,20 @@
       const ix = -cw / 2 + 118, iw = cw - 132;
       A.rr(ctx, ix, -8, iw, 16, 6, 71, 0.4);
       A.fs(ctx, '#3a2a44', 2.4);
-      ctx.fillStyle = g.mySubmitted ? '#6cbf6a' : g.typeBoostT > 0 ? '#f6c945' : '#8fd3f4';
+      ctx.fillStyle = g.mySubmitted ? '#6cbf6a' : '#8fd3f4';
       ctx.beginPath();
       ctx.roundRect(ix + 2, -6, Math.max(0.1, (iw - 4) * g.myProgress / 100), 12, 4);
       ctx.fill();
       A.text(ctx, Math.floor(g.myProgress) + '%', ix + iw / 2, 1, { size: 12, color: '#fff', outline: 3 });
       done();
-      if (!g.mySubmitted && !p.seated && g.phase === 'play') {
+      if (!g.mySubmitted && !p.seated && g.phase === 'play' && !g.hideSeatHint) {
         const near = U.dist(p.x, p.y, Wd.playerSeat.x, Wd.playerSeat.y) < 66;
-        if (!near && g.myProgress < 100) {
+        if (!near) {
           const s = Wd.playerSeat;
           const b = Math.sin(g.realT * 4) * 3;
           ctx.save();
           ctx.globalAlpha = 0.85;
-          A.text(ctx, 'YOUR SEAT', s.x, s.y - 98 + b, { size: 13, color: '#ffe08a', outline: 4 });
+          A.text(ctx, g.activeTrouble() === 0 ? 'ALL CALM: GO WRITE!' : 'YOUR SEAT', s.x, s.y - 98 + b, { size: 13, color: '#ffe08a', outline: 4 });
           ctx.fillStyle = '#ffe08a';
           ctx.beginPath();
           ctx.moveTo(s.x - 7, s.y - 88 + b);
@@ -433,89 +490,106 @@
       }
     }
     if (k <= 0.01) return;
-    // laptop panel
-    const pw = 560, ph = 220;
-    const px = W / 2 - pw / 2, py = H - ph * k + 12;
+    const pw = 800, ph = 246;
+    const px = W / 2 - pw / 2, py = H - ph * k + 8;
     ctx.save();
     A.rr(ctx, px + 4, py + 8, pw, ph, 16, 80, 0.6);
     A.fs(ctx, 'rgba(20,8,30,0.5)', 0);
     A.rr(ctx, px, py, pw, ph, 16, 81, 0.6);
     A.fs(ctx, '#3a2f48', 3);
-    // screen paper
-    const sx = px + 16, sy = py + 14, sw = pw - 32, sh = ph - 40;
-    A.rr(ctx, sx, sy, sw, sh, 6, 82, 0.4);
+    // document
+    const dx = px + 14, dy = py + 12, dw = pw - 220, dh = 92;
+    A.rr(ctx, dx, dy, dw, dh, 6, 82, 0.4);
     A.fs(ctx, '#fffdf7', 2.4);
     ctx.fillStyle = '#ece4f6';
-    ctx.fillRect(sx + 2, sy + 2, sw - 4, 22);
-    ctx.fillStyle = A.C.inkSoft;
-    ctx.font = `14px ${A.F.hand}`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(g.essay.prompt, sx + 10, sy + 13);
-    const words = Math.round(g.myProgress * 6.5);
-    ctx.textAlign = 'right';
-    ctx.fillText(words + ' / 650 words', sx + sw - 10, sy + 13);
-    // wrapped text (cached per length)
-    ctx.font = `17px ${A.F.hand}`;
-    const maxW = sw - 24;
-    if (wrapCache.len !== g.typed.length || wrapCache.ref !== g.typed) {
-      const lines = [[]];
-      let lw = 0;
-      const chars = g.typed;
-      let wordStart = 0;
-      for (let i = 0; i < chars.length; i++) {
-        const ch = chars[i];
-        const cw = ctx.measureText(ch.c).width;
-        const line = lines[lines.length - 1];
-        line.push(ch);
-        lw += cw;
-        if (ch.c === ' ') wordStart = line.length;
-        if (lw > maxW) {
-          const carry = wordStart > 0 && wordStart < line.length ? line.splice(wordStart) : [];
-          lines.push(carry);
-          lw = carry.reduce((a, c) => a + ctx.measureText(c.c).width, 0);
-          wordStart = 0;
-        }
-      }
-      wrapCache = { len: chars.length, ref: chars, lines };
-    }
-    const lines = wrapCache.lines.slice(-6);
-    let ty = sy + 42;
-    for (let li = 0; li < lines.length; li++) {
-      let tx = sx + 12;
-      const ln = lines[li];
-      for (const ch of ln) {
-        ctx.fillStyle = ch.typo ? '#d23c34' : A.INK;
-        ctx.textAlign = 'left';
-        ctx.fillText(ch.c, tx, ty);
-        const cw = ctx.measureText(ch.c).width;
-        if (ch.typo) {
-          ctx.strokeStyle = '#d23c34';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.moveTo(tx, ty + 9);
-          ctx.lineTo(tx + cw, ty + 9);
-          ctx.stroke();
-        }
-        tx += cw;
-      }
-      if (li === lines.length - 1 && Math.sin(g.realT * 9) > 0) {
+    ctx.fillRect(dx + 2, dy + 2, dw - 4, 20);
+    A.text(ctx, E.prompt, dx + 10, dy + 12, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'left' });
+    A.text(ctx, Math.round(g.myProgress * 6.5) + ' / 650 words', dx + dw - 10, dy + 12, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'right' });
+    ctx.font = `16px ${A.F.hand}`;
+    const shown = [];
+    for (const l of E.lines) shown.push({ text: l.text, kind: l.kind });
+    if (E.typing) shown.push({ text: E.typing.text.slice(0, Math.floor(E.typing.n)), kind: E.typing.fog ? 'fog' : 'typing', cursor: true });
+    const wrapped = [];
+    for (const l of shown) A.wrap(ctx, l.text || ' ', dw - 24).forEach((t, i, arr) => wrapped.push({ t, kind: l.kind, cursor: l.cursor && i === arr.length - 1 }));
+    const vis = wrapped.slice(-3);
+    if (!vis.length) vis.push({ t: 'Pick your opening line below.', kind: 'hint' });
+    vis.forEach((l, i) => {
+      const ly = dy + 36 + i * 20;
+      const col = l.kind === 'cliche' || l.kind === 'fog' ? '#a0909a' : l.kind === 'hint' ? '#b0a6b8' : A.INK;
+      A.text(ctx, l.t, dx + 12, ly, { size: 16, font: A.F.hand, color: col, outline: 0, align: 'left' });
+      if (l.cursor && Math.sin(g.realT * 9) > 0) {
+        ctx.font = `16px ${A.F.hand}`;
         ctx.fillStyle = A.INK;
-        ctx.fillRect(tx + 1, ty - 9, 2, 18);
+        ctx.fillRect(dx + 13 + ctx.measureText(l.t).width, ly - 8, 2, 16);
       }
-      ty += 25;
-    }
+    });
+    // reader
+    const rx = px + pw - 196, ry = py + 12, rw = 182, rh = 92;
+    A.rr(ctx, rx, ry, rw, rh, 8, 83, 0.4);
+    A.fs(ctx, '#f3ead8', 2.4);
+    ctx.save();
+    A.rr(ctx, rx + 6, ry + 6, 56, rh - 12, 6, 84, 0.3);
+    A.fs(ctx, '#cfe0f0', 2);
+    A.rr(ctx, rx + 6, ry + 6, 56, rh - 12, 6, 84, 0.3);
+    ctx.clip();
+    const mood = E.reactT > 0 ? (E.reaction.kind === 'match' ? 'happy' : E.reaction.kind === 'meh' ? 'neutral' : 'angry') : 'neutral';
+    A.person(ctx, rx + 34, ry + 118, READER, { pose: 'stand', emo: mood, t: g.realT, scale: 1.25, noShadow: true });
+    ctx.restore();
+    const tone = MB.TONES[E.want];
+    A.text(ctx, 'THE READER WANTS', rx + 70, ry + 18, { size: 11, color: A.C.inkSoft, outline: 0, align: 'left' });
+    const pulse = 1 + E.wantFlash * 0.25 * Math.sin(g.realT * 20);
+    ctx.save();
+    ctx.translate(rx + 84, ry + 46);
+    ctx.scale(pulse, pulse);
+    A.icon(ctx, 'tone-' + E.want, 0, 0, 13, '#fffaf0');
+    ctx.restore();
+    A.text(ctx, tone.name, rx + 102, ry + 47, { size: 24, color: tone.col, outline: 3, align: 'left' });
+    if (E.reactT > 0) {
+      A.text(ctx, '“' + E.reaction.text + '”', rx + 70, ry + 76, { size: 15, font: A.F.hand, color: E.reaction.kind === 'match' ? '#3f8f5e' : E.reaction.kind === 'meh' ? A.C.inkSoft : '#c94f3d', outline: 0, align: 'left' });
+    } else A.text(ctx, 'for ' + E.wantLeft + ' more line' + (E.wantLeft > 1 ? 's' : ''), rx + 70, ry + 76, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'left' });
+    // cards
+    const cy = py + 114, ch = 92, gap = 12;
+    const cwid = (pw - 28 - gap * 2) / 3;
+    const fog = E.foggy();
+    const keys = MB.Input.lastDevice === 'touch' ? ['TAP', 'TAP', 'TAP'] : MB.Input.lastDevice === 'pad' ? ['◀', '▲', '▶'] : ['←', '↑', '→'];
+    const rects = [];
+    E.cards.forEach((c, i) => {
+      const cx = px + 14 + i * (cwid + gap);
+      const chosen = E.typing && E.choiceIdx === i;
+      const dim = E.typing && !chosen;
+      const intro = U.ease.outBack(U.clamp((E.dealT - i * 0.06) / 0.25, 0, 1));
+      const isFog = fog && i === E.fogIdx && !E.typing;
+      const hover = !E.typing && U.inRect(MB.Input.mouse.x, MB.Input.mouse.y, { x: cx, y: cy, w: cwid, h: ch });
+      ctx.save();
+      ctx.globalAlpha = dim ? 0.35 : 1;
+      ctx.translate(cx + cwid / 2, cy + ch / 2 + (1 - intro) * 40 - (chosen ? 6 : hover ? 4 : 0));
+      if (isFog) ctx.rotate(Math.sin(g.realT * 13 + i) * 0.03);
+      A.rr(ctx, -cwid / 2, -ch / 2, cwid, ch, 8, 85 + i, 0.5);
+      A.fs(ctx, isFog ? '#d8d0dc' : chosen ? '#fff3c4' : '#fffaf0', chosen || hover ? 3.5 : 2.6, chosen || hover ? '#f6c945' : A.INK);
+      HUD.keycap(ctx, keys[i], -cwid / 2 + 18, -ch / 2 + 15, { size: 12 });
+      if (!isFog) A.icon(ctx, 'tone-' + c.tone, cwid / 2 - 18, -ch / 2 + 15, 11, null);
+      const label = isFog ? 'BRAIN FOG' : c.tone === 'cliche' ? 'CLASSIC' : MB.TONES[c.tone].name;
+      A.text(ctx, label, cwid / 2 - 34, -ch / 2 + 15, { size: 12, color: isFog ? '#8a7a90' : c.tone === 'cliche' ? '#8a7a90' : MB.TONES[c.tone].col, outline: 0, align: 'right' });
+      ctx.font = `15px ${A.F.hand}`;
+      const txt = isFog ? 'too noisy to think... (deal with the noise!)' : c.text;
+      A.wrap(ctx, txt, cwid - 20).slice(0, 3).forEach((l, li) => A.text(ctx, l, -cwid / 2 + 10, -ch / 2 + 38 + li * 18, { size: 15, font: A.F.hand, color: isFog ? '#7a6a80' : A.INK, outline: 0, align: 'left' }));
+      ctx.restore();
+      rects.push({ x: cx, y: cy, w: cwid, h: ch });
+    });
+    g.cardRects = E.typing || g.mySubmitted ? null : rects;
     // footer
-    const fy = py + ph - 14;
-    ctx.textAlign = 'left';
-    const noisy = g.noiseAt(Wd.playerSeat) > 4 && !g.stats.calm;
-    A.text(ctx, g.mySubmitted ? 'SUBMITTED! Get back out there.' : noisy ? 'TOO NOISY: typos incoming!' : g.typeBoostT > 0 ? 'TURBO TYPING (coffee)' : 'MASH ANY KEY TO WRITE', sx + 4, fy, { size: 14, color: noisy ? '#ff9a8a' : g.typeBoostT > 0 ? '#ffe08a' : '#fff6e6', outline: 0, align: 'left' });
-    A.text(ctx, MB.Input.lastDevice === 'keys' ? 'WASD / SHIFT: stand up' : 'move: stand up', sx + sw - 4, fy, { size: 13, color: '#c9bfd8', outline: 0, align: 'right', font: A.F.hand });
-    // progress strip
+    const fy = py + ph - 22;
+    let foot = 'Pick the line that matches what the reader wants.';
+    if (g.mySubmitted) foot = 'SUBMITTED! Go help your friends.';
+    else if (E.typing) foot = 'writing...  (mash keys to type faster)';
+    else if (fog) foot = 'TOO NOISY: one card is fogged. Deal with the noise!';
+    else if (E.streak > 1) foot = 'VOICE STREAK x' + E.streak + '! Keep matching the reader.';
+    A.text(ctx, foot, px + 18, fy, { size: 14, color: fog && !E.typing ? '#ff9a8a' : E.streak > 1 ? '#ffe08a' : '#fff6e6', outline: 0, align: 'left' });
+    A.text(ctx, MB.Input.lastDevice === 'touch' ? 'DASH: stand up' : MB.Input.lastDevice === 'pad' ? 'B: stand up' : '↓ / SHIFT: stand up', px + pw - 18, fy, { size: 13, color: '#c9bfd8', outline: 0, align: 'right' });
     ctx.fillStyle = '#5a4a6a';
-    ctx.fillRect(sx, sy + sh + 2, sw, 5);
-    ctx.fillStyle = '#8fd3f4';
-    ctx.fillRect(sx, sy + sh + 2, sw * g.myProgress / 100, 5);
+    ctx.fillRect(px + 14, py + ph - 9, pw - 28, 5);
+    ctx.fillStyle = g.mySubmitted ? '#6cbf6a' : '#8fd3f4';
+    ctx.fillRect(px + 14, py + ph - 9, (pw - 28) * g.myProgress / 100, 5);
     ctx.restore();
   }
 
