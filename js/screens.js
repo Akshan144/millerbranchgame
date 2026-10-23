@@ -496,8 +496,8 @@
   S.title = function () {
     const st = { name: 'title', t: 0, sel: 0, ready: Au.ready, rects: [] };
     const items = [
-      { label: 'START STUDYING', sub: '5-night campaign · the Nov 1 deadline', go: () => MB.go(S.select('campaign')) },
-      { label: 'ROLLING ADMISSIONS', sub: 'endless nights · chase a high score', go: () => MB.go(S.select('endless')) },
+      { label: 'START STUDYING', sub: '5-night campaign · the Nov 1 deadline', go: () => MB.go(S.difficulty('campaign')) },
+      { label: 'ROLLING ADMISSIONS', sub: 'endless nights · chase a high score', go: () => MB.go(S.difficulty('endless')) },
       { label: 'TUTORIAL', sub: 'orientation night with Ms. Okafor', go: () => { const run = MB.newRun(U.store.get('char', 0), 'campaign'); MB.go(new MB.Tutorial(run, () => MB.go(S.title()))); } },
       { label: 'HOW TO PLAY', go: () => MB.go(S.howto(S.title)) },
       { label: 'SETTINGS', go: () => MB.go(S.settings(S.title)) },
@@ -539,9 +539,11 @@
         st.rects = items.map((it, i) => drawMenuItem(ctx, it.label, 110, 318 + i * 64, st.sel === i, st.t, st.sel === i ? it.sub : null));
       }
       const best = U.store.get('best', {});
+      const dk = U.store.get('diff', 'normal');
       const bits = [];
-      if (best.campaign) bits.push('Best campaign: ' + U.fmtNum(best.campaign));
-      if (best.endless) bits.push('Best rolling: ' + U.fmtNum(best.endless.score) + ' (' + best.endless.nights + ' nights)');
+      if (best['campaign_' + dk]) bits.push('Best story (' + MB.DIFFS[dk].name + '): ' + U.fmtNum(best['campaign_' + dk]));
+      const be = best['endless_' + dk];
+      if (be) bits.push('Best rolling (' + MB.DIFFS[dk].name + '): ' + U.fmtNum(be.score) + ' · ' + be.nights + ' nights');
       bits.push('M mutes');
       A.text(ctx, bits.join('   ·   '), 24, H - 22, { size: 16, font: A.F.hand, color: '#e8d8ff', outline: 4, align: 'left' });
       Wd().drawPost(ctx, 0.4);
@@ -550,6 +552,77 @@
   };
   const Wd = () => MB.World;
 
+  // --- difficulty -----------------------------------------------------------------------------------
+  S.difficulty = function (mode) {
+    const ids = ['easy', 'normal', 'hard'];
+    const st = { name: 'difficulty', t: 0, sel: Math.max(0, ids.indexOf(U.store.get('diff', 'normal'))), rects: [] };
+    const words = {
+      easy: ['Light workload', 'Long breathers between waves', 'Short essays'],
+      normal: ['Heavier workload', 'Short breathers, steady trickle', 'Longer essays, bigger waves'],
+      hard: ['Brutal workload', 'Rare breathers, constant trickle', 'Long essays, huge waves'],
+    };
+    st.update = (dt) => {
+      st.t += dt;
+      if (In.hit('pause')) {
+        Au.play('back');
+        return MB.go(S.title());
+      }
+      if (st.t > 0.3 && menuInput(st, ids.length, { vertical: false })) {
+        Au.play('confirm');
+        U.store.set('diff', ids[st.sel]);
+        MB.go(S.select(mode));
+      }
+    };
+    st.draw = (ctx) => {
+      S.drawBackdrop(ctx, st.t, 0.6);
+      A.text(ctx, 'HOW INTENSE IS THIS WEEK?', W / 2, 74, { size: 42, color: '#fbf3e4', outline: 9, shadow: 5 });
+      A.text(ctx, mode === 'endless' ? 'Rolling Admissions gets harder every night on any setting.' : 'You can change this every time you start a new run.', W / 2, 116, { size: 20, font: A.F.hand, color: '#e8d8ff', outline: 5 });
+      const cw = 320, ch = 420, gap = 34;
+      const x0 = W / 2 - (3 * cw + 2 * gap) / 2;
+      st.rects = ids.map((id, i) => {
+        const d = MB.DIFFS[id];
+        const sel = st.sel === i;
+        const appear = U.ease.outBack(U.clamp((st.t - i * 0.08) / 0.4, 0, 1));
+        const x = x0 + i * (cw + gap), y = 158 + (sel ? -12 : 0) + (1 - appear) * 260;
+        ctx.save();
+        ctx.translate(x + cw / 2, y + ch / 2);
+        ctx.rotate((i - 1) * 0.025 * (sel ? 0.3 : 1));
+        if (!sel) ctx.globalAlpha = 0.85;
+        A.rr(ctx, -cw / 2 + 6, -ch / 2 + 8, cw, ch, 14, 640 + i, 0.6);
+        A.fs(ctx, 'rgba(10,5,20,0.5)', 0);
+        A.rr(ctx, -cw / 2, -ch / 2, cw, ch, 14, 650 + i, 0.6);
+        A.fs(ctx, sel ? '#fff8ec' : '#ece2d4', sel ? 4.5 : 3, sel ? d.col : A.INK);
+        A.rr(ctx, -cw / 2, -ch / 2, cw, 70, 14, 660 + i, 0.6);
+        A.fs(ctx, d.col, 3);
+        A.text(ctx, d.name, 0, -ch / 2 + 37, { size: 40, color: '#fff', outline: 6 });
+        for (let k = 0; k < 3; k++) {
+          const sx = -40 + k * 40, sy = -ch / 2 + 104;
+          A.star(ctx, sx, sy, 15, 6.5);
+          A.fs(ctx, k <= i ? '#f6c945' : '#d8cfd8', 2.5, k <= i ? A.INK : '#b0a6b8');
+        }
+        A.text(ctx, d.title, 0, -ch / 2 + 148, { size: 26, font: A.F.script, color: A.C.inkSoft, outline: 0 });
+        ctx.font = `17px ${A.F.hand}`;
+        A.wrap(ctx, d.blurb, cw - 50).forEach((l, k) => A.text(ctx, l, 0, -ch / 2 + 182 + k * 21, { size: 17, font: A.F.hand, color: A.INK, outline: 0 }));
+        const ext = d.ext[mode === 'endless' ? 1 : 0];
+        const bullets = words[id].concat([ext + (ext === 1 ? ' extension' : ' extensions'), 'Score x' + d.score]);
+        bullets.forEach((b, k) => {
+          const by = -ch / 2 + 262 + k * 28;
+          ctx.fillStyle = d.col;
+          ctx.beginPath();
+          ctx.arc(-cw / 2 + 32, by, 5, 0, U.TAU);
+          ctx.fill();
+          A.text(ctx, b, -cw / 2 + 46, by + 1, { size: 15, color: A.INK, outline: 0, align: 'left' });
+        });
+        if (id === 'normal') A.text(ctx, 'recommended', 0, ch / 2 - 16, { size: 13, font: A.F.hand, color: '#a094a8', outline: 0 });
+        ctx.restore();
+        return { x, y, w: cw, h: ch };
+      });
+      A.text(ctx, '← → choose   ·   ' + HUD.keyName('act') + ' / click to confirm   ·   ESC back', W / 2, H - 28, { size: 18, font: A.F.hand, color: '#fff6e6', outline: 4 });
+      Wd().drawPost(ctx, 0.4);
+    };
+    return st;
+  };
+
   // --- character select ------------------------------------------------------------------------------
   S.select = function (mode) {
     const st = { name: 'select', t: 0, sel: U.store.get('char', 0), rects: [] };
@@ -557,7 +630,7 @@
       st.t += dt;
       if (In.hit('pause')) {
         Au.play('back');
-        return MB.go(S.title());
+        return MB.go(S.difficulty(mode));
       }
       if (menuInput(st, MB.CHARACTERS.length, { vertical: false })) {
         Au.play('confirm');
@@ -624,6 +697,8 @@
     MB.snapshotRun(run);
     const def = MB.nightDef(run);
     run.currentDef = def;
+    run.currentDefIdx = run.nightIdx;
+    const dif = MB.diffOf(run);
     const st = { name: 'intro', t: 0 };
     const prevDeck = run.mode === 'endless' ? [] : run.nightIdx > 0 ? MB.NIGHTS[run.nightIdx - 1].deck : [];
     const fresh = def.deck.filter((d) => !prevDeck.includes(d));
@@ -666,7 +741,7 @@
         ctx.arc(rx, -ch / 2 + 2, 9, Math.PI * 0.1, Math.PI * 0.9, true);
         ctx.stroke();
       }
-      const label = run.mode === 'endless' ? 'ROLLING ADMISSIONS · NIGHT ' + def.endlessIdx : 'NIGHT ' + def.n + ' OF 5';
+      const label = (run.mode === 'endless' ? 'ROLLING ADMISSIONS · NIGHT ' + def.endlessIdx : 'NIGHT ' + def.n + ' OF 5') + ' · ' + dif.name;
       A.text(ctx, label, 0, -ch / 2 + 36, { size: 26, color: '#fff6e6', outline: 0 });
       A.text(ctx, def.day, 0, -ch / 2 + 108, { size: 60, color: A.INK, outline: 0 });
       A.text(ctx, def.date.replace('OCT', 'OCTOBER').replace('NOV', 'NOVEMBER'), 0, -ch / 2 + 152, { size: 26, color: '#c94f3d', outline: 0 });
@@ -724,6 +799,7 @@
       ['Night points', U.fmtNum(res.base)],
       ['Full house bonus', res.fullBonus ? '+' + U.fmtNum(res.fullBonus) : '—'],
       ['Early finish bonus', res.timeBonus ? '+' + U.fmtNum(res.timeBonus) : '—'],
+      [res.diff.name[0] + res.diff.name.slice(1).toLowerCase() + ' difficulty bonus', res.diffBonus ? '+' + U.fmtNum(res.diffBonus) + '  (x' + res.diff.score + ')' : '—'],
       ['Essay lines that wowed', res.essay ? res.essay.perfect + ' / ' + res.essay.written : '—'],
       ['Groove modes', String(res.grooves || 0)],
     ];
@@ -731,7 +807,7 @@
     if (res.cont) {
       options = finalNight ? [{ label: 'OPEN DECISION LETTERS', go: () => MB.go(S.ending()) }] : [{ label: 'PICK A STUDY HACK', go: () => MB.go(S.upgrade()) }];
     } else if (res.endless) {
-      options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.select('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
+      options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.difficulty('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     } else {
       options = [{ label: 'RETRY THE NIGHT', go: () => { MB.restoreRun(run); MB.go(S.intro(run)); } }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     }
@@ -899,14 +975,15 @@
 
   function saveBest(kind, score, nights) {
     const best = U.store.get('best', {});
+    const key = kind + '_' + ((MB.run && MB.run.diff) || 'normal');
     let isNew = false;
     if (kind === 'campaign') {
-      if (!best.campaign || score > best.campaign) {
-        best.campaign = score;
+      if (!best[key] || score > best[key]) {
+        best[key] = score;
         isNew = true;
       }
-    } else if (!best.endless || score > best.endless.score) {
-      best.endless = { score, nights };
+    } else if (!best[key] || score > best[key].score) {
+      best[key] = { score, nights };
       isNew = true;
     }
     U.store.set('best', best);
@@ -1005,7 +1082,7 @@
     const ranks = [[260000, 'Legend of Miller Branch'], [200000, 'Valedictorian Energy'], [140000, "Dean's List"], [80000, 'Solid Applicant'], [0, 'Late Bloomer']];
     const rank = ranks.find((r) => run.score >= r[0])[1];
     const st = { name: 'ending', t: 0, sel: 0, rects: [], opened: 0 };
-    const options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.select('campaign')) }, { label: 'ROLLING ADMISSIONS', go: () => MB.go(S.select('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
+    const options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.difficulty('campaign')) }, { label: 'ROLLING ADMISSIONS', go: () => MB.go(S.difficulty('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     Au.Music.set({ intensity: 1, mode: 'chill', bpm: 80 });
     st.update = (dt) => {
       st.t += dt;
@@ -1139,7 +1216,7 @@
       const tips = [
         ['FOCUS RING', 'Noise drains it. At zero, a friend wanders off to doomscroll. Walk up and pep talk them back.'],
         ['PROGRESS', 'Focused friends write faster. A full bar means SUBMITTED. Miss the nightly quota and you are deferred.'],
-        ['YOUR ESSAY', 'Sit down and pick lines that match what the admissions reader craves: HEART, WIT or GRIT. Skip the clichés.'],
+        ['YOUR ESSAY', 'Pick lines that match what the reader craves: HEART, WIT or GRIT. Once yours is in, keep writing to proofread for friends.'],
         ['GROOVE + FLOW', 'A calm library fills the Groove meter: everyone speeds up and points double. Fix things fast to build Flow.'],
         ['COFFEE + PIZZA', 'Coffee wakes nappers and boosts anyone, you included. Share pizza slices for instant focus.'],
       ];
@@ -1246,7 +1323,7 @@
       overlayFade(ctx, 0.62);
       const done = HUD.card(ctx, W / 2 - 220, 120, 440, 470, 0.01, '#fff8ec', 950);
       A.text(ctx, 'PAUSED', 0, -180, { size: 50, color: A.INK, outline: 0 });
-      A.text(ctx, night.def.day + ' · ' + U.clockText(night.minutes).hm + ' ' + U.clockText(night.minutes).ampm, 0, -140, { size: 20, font: A.F.hand, color: A.C.inkSoft, outline: 0 });
+      A.text(ctx, night.def.day + ' · ' + U.clockText(night.minutes).hm + ' ' + U.clockText(night.minutes).ampm + ' · ' + night.diff.name, 0, -140, { size: 20, font: A.F.hand, color: A.C.inkSoft, outline: 0 });
       done();
       st.rects = items.map((it, i) => {
         const y = 300 + i * 56;

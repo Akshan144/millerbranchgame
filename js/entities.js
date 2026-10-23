@@ -350,6 +350,14 @@
     progressBlocked() {
       return this.flags.wifi || this.flags.usb || this.flags.asleep;
     }
+    // offline drafting still counts for something; only napping stops writing entirely
+    progressMul() {
+      if (this.flags.asleep) return 0;
+      let m = 1;
+      if (this.flags.wifi) m = Math.min(m, 0.35);
+      if (this.flags.usb) m = Math.min(m, 0.3);
+      return m;
+    }
     emotion() {
       if (this.state === 'submitted') return 'happy';
       if (this.flags.asleep) return 'sleep';

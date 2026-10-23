@@ -175,7 +175,7 @@
       ctx.stroke();
       const meta = MB.EVENTS[ev.type];
       if (meta.life) {
-        const left = U.clamp(1 - ev.t / meta.life, 0, 1);
+        const left = U.clamp(1 - ev.t / g.lifeOf(ev), 0, 1);
         ctx.strokeStyle = 'rgba(43,27,51,0.6)';
         ctx.lineWidth = 5;
         ctx.beginPath();
@@ -471,14 +471,15 @@
       ctx.fill();
       A.text(ctx, Math.floor(g.myProgress) + '%', ix + iw / 2, 1, { size: 12, color: '#fff', outline: 3 });
       done();
-      if (!g.mySubmitted && !p.seated && g.phase === 'play' && !g.hideSeatHint) {
+      const proofing = g.mySubmitted && g.proofTarget();
+      if ((!g.mySubmitted || proofing) && !p.seated && g.phase === 'play' && !g.hideSeatHint) {
         const near = U.dist(p.x, p.y, Wd.playerSeat.x, Wd.playerSeat.y) < 66;
         if (!near) {
           const s = Wd.playerSeat;
           const b = Math.sin(g.realT * 4) * 3;
           ctx.save();
           ctx.globalAlpha = 0.85;
-          A.text(ctx, g.activeTrouble() === 0 ? 'ALL CALM: GO WRITE!' : 'YOUR SEAT', s.x, s.y - 98 + b, { size: 13, color: '#ffe08a', outline: 4 });
+          A.text(ctx, g.activeTrouble() === 0 ? (proofing ? 'ALL CALM: GO PROOFREAD!' : 'ALL CALM: GO WRITE!') : 'YOUR SEAT', s.x, s.y - 98 + b, { size: 13, color: '#ffe08a', outline: 4 });
           ctx.fillStyle = '#ffe08a';
           ctx.beginPath();
           ctx.moveTo(s.x - 7, s.y - 88 + b);
@@ -503,7 +504,8 @@
     A.fs(ctx, '#fffdf7', 2.4);
     ctx.fillStyle = '#ece4f6';
     ctx.fillRect(dx + 2, dy + 2, dw - 4, 20);
-    A.text(ctx, E.prompt, dx + 10, dy + 12, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'left' });
+    const pt = g.mySubmitted && g.proofTarget();
+    A.text(ctx, pt ? 'PROOFREADING ' + pt.name.toUpperCase() + '’S ESSAY · ' + Math.floor(pt.progress) + '%' : E.prompt, dx + 10, dy + 12, { size: pt ? 13 : 14, font: pt ? A.F.display : A.F.hand, color: pt ? '#2f5d8a' : A.C.inkSoft, outline: 0, align: 'left' });
     A.text(ctx, Math.round(g.myProgress * 6.5) + ' / 650 words', dx + dw - 10, dy + 12, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0, align: 'right' });
     ctx.font = `16px ${A.F.hand}`;
     const shown = [];
@@ -576,11 +578,11 @@
       ctx.restore();
       rects.push({ x: cx, y: cy, w: cwid, h: ch });
     });
-    g.cardRects = E.typing || g.mySubmitted ? null : rects;
+    g.cardRects = E.typing || (g.mySubmitted && !pt) ? null : rects;
     // footer
     const fy = py + ph - 22;
     let foot = 'Pick the line that matches what the reader wants.';
-    if (g.mySubmitted) foot = 'SUBMITTED! Go help your friends.';
+    if (g.mySubmitted) foot = pt ? 'Every good line boosts ' + pt.name + '’s essay!' : 'Everyone is done. Nice work!';
     else if (E.typing) foot = 'writing...  (mash keys to type faster)';
     else if (fog) foot = 'TOO NOISY: one card is fogged. Deal with the noise!';
     else if (E.streak > 1) foot = 'VOICE STREAK x' + E.streak + '! Keep matching the reader.';

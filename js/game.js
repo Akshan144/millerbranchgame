@@ -79,9 +79,9 @@
       n: 5 + k, endlessIdx: k + 1, day: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'][k % 7], date: 'NOV ' + (1 + k), title: 'Rolling Admissions ' + (k + 1),
       task: U.pick(['Scholarship essays', 'Honors college app', 'Waitlist letter', 'Financial aid forms', 'Portfolio upload']),
       weather: U.pick(weathers), halloween: k % 7 === 6, friends: 4, quota: k < 2 ? 3 : k < 5 ? 4 : 5,
-      duration: 165, work: Math.min(160, 132 + k * 5), essayLines: Math.min(15, 12 + Math.floor(k / 2)),
-      waves: { first: 6, calm: [Math.max(5, 10 - k * 0.6), Math.max(7, 13 - k * 0.6)], size: [2, Math.min(5, 2 + Math.floor(k / 2))], gap: [2, 3.5] },
-      maxEv: Math.min(6, 3 + Math.floor(k / 2)), deck: D5, intro: [],
+      duration: 165, work: Math.min(172, 126 + k * 7), essayLines: Math.min(16, 12 + Math.floor(k / 2)),
+      waves: { first: 5, calm: [Math.max(4, 9.5 - k * 0.7), Math.max(6, 12.5 - k * 0.7)], size: [2, Math.min(6, 2 + Math.ceil(k / 2))], gap: [2, 3.2] },
+      maxEv: Math.min(7, 3 + Math.ceil(k / 2)), deck: D5, intro: [],
     };
   };
 
@@ -106,7 +106,35 @@
 
   const LIBRARIAN_LINES = ['Library closes at midnight, dears.', 'Shhh.', "Please don't feed the raccoon.", 'Who keeps ordering pizza?', 'The printer has feelings.', 'Running? ...I saw nothing.', 'Phones go in jail. Library law.', 'Good luck on those essays!'];
 
+  // Difficulty scales how much work there is, how often trouble arrives and how hard it bites.
+  MB.DIFFS = {
+    easy: { id: 'easy', name: 'EASY', title: 'Chill Study Session', blurb: 'Long calm stretches, short nights of work, plenty of extensions. Good for learning the ropes.',
+      work: 1, lines: 0, calm: 1, size: 0, maxEv: 0, drain: 1, life: 1, trickle: 0, grooveFill: 1, grooveTime: 0, ext: [2, 3], score: 1, col: '#6cbf6a' },
+    normal: { id: 'normal', name: 'NORMAL', title: 'Crunch Time', blurb: 'Bigger waves, shorter breathers, longer essays. Problems linger and bite harder.',
+      work: 1, lines: 4, calm: 0.72, size: 1, maxEv: 1, drain: 1.2, life: 1.15, trickle: 0.045, grooveFill: 0.9, grooveTime: -2, ext: [1, 2], score: 1.3, col: '#f6c945' },
+    hard: { id: 'hard', name: 'HARD', title: 'Ivy League', blurb: 'Relentless waves, demanding readers, no safety net. For the valedictorians.',
+      work: 1.08, lines: 7, calm: 0.5, size: 2, maxEv: 2, drain: 1.45, life: 1.3, trickle: 0.08, grooveFill: 0.75, grooveTime: -3, ext: [1, 1], score: 1.7, col: '#e0524a' },
+  };
+  const BLOCKERS = new Set(['wifi', 'sleeper', 'outage', 'alarm']);
+  MB.diffOf = (run) => MB.DIFFS[(run && run.diff) || 'normal'];
+  MB.applyDiff = function (def, d) {
+    const w = def.waves;
+    const faster = d.calm < 1 ? 0.8 : 1;
+    return Object.assign({}, def, {
+      work: Math.round(def.work * d.work),
+      essayLines: def.essayLines + d.lines,
+      maxEv: def.maxEv + d.maxEv,
+      waves: {
+        first: Math.max(3, w.first * d.calm),
+        calm: [w.calm[0] * d.calm, w.calm[1] * d.calm],
+        size: [w.size[0] + Math.ceil(d.size / 2), w.size[1] + d.size],
+        gap: [w.gap[0] * faster, w.gap[1] * faster],
+      },
+    });
+  };
+
   MB.computeStats = function (run) {
+    const d = MB.diffOf(run);
     const c = run.ch.stats;
     const u = (id) => run.upgrades[id] || 0;
     return {
@@ -117,9 +145,9 @@
       shushCd: 7 * c.shushCd * Math.pow(0.8, u('whistle')),
       type: c.type * (1 + 0.3 * u('keyboard')),
       regen: 1 + 0.6 * u('lofi'),
-      drainMul: 0.7 * Math.pow(0.82, u('headphones')),
-      grooveFill: 1 + 0.5 * u('lofi'),
-      grooveTime: 10 + 5 * u('encore'),
+      drainMul: 0.7 * d.drain * Math.pow(0.82, u('headphones')),
+      grooveFill: (1 + 0.5 * u('lofi')) * d.grooveFill,
+      grooveTime: 10 + d.grooveTime + 5 * u('encore'),
       interactR: 1 + 0.3 * u('grabby'),
       coffeeCd: u('espresso') ? 6 : 12,
       pep: c.pep,
@@ -129,10 +157,12 @@
     };
   };
 
-  MB.newRun = function (charIdx, mode) {
+  MB.newRun = function (charIdx, mode, diff) {
+    diff = diff || U.store.get('diff', 'normal');
     MB.run = {
       ch: MB.CHARACTERS[charIdx], charIdx, mode, nightIdx: 0, score: 0, upgrades: {},
-      friends: U.shuffle(MB.FRIENDS).slice(0, 4), records: {}, history: [], snapshot: null, extensions: mode === 'endless' ? 3 : 2,
+      friends: U.shuffle(MB.FRIENDS).slice(0, 4), records: {}, history: [], snapshot: null, diff,
+      extensions: MB.DIFFS[diff].ext[mode === 'endless' ? 1 : 0],
     };
     return MB.run;
   };
@@ -153,7 +183,9 @@
     constructor(run) {
       this.name = 'night';
       this.run = run;
-      const def = (this.def = MB.nightDef(run));
+      this.diff = MB.diffOf(run);
+      const base = run.currentDef && run.currentDefIdx === run.nightIdx ? run.currentDef : MB.nightDef(run);
+      const def = (this.def = MB.applyDiff(base, this.diff));
       this.endless = run.mode === 'endless';
       this.stats = MB.computeStats(run);
       this.time = 0;
@@ -252,14 +284,25 @@
       }
     }
     pointMul() { return this.grooveT > 0 ? 2 : 1; }
+    // the friend who most needs help with their essay
+    proofTarget() {
+      let best = null;
+      for (const s of this.students) if (s.state === 'study' && (!best || s.progress < best.progress)) best = s;
+      return best;
+    }
+    // harder settings let problems linger, except the ones that freeze everyone's writing
+    lifeOf(ev) {
+      if (!ev.meta || !ev.meta.life) return 0;
+      return ev.meta.life * (BLOCKERS.has(ev.type) ? 1 : this.diff.life);
+    }
     fail(ev) {
       if (ev.resolved) return;
       ev.resolved = true;
       ev.failed = true;
       ev.end(this);
     }
-    addPoints(pts, x, y, label) {
-      const total = Math.round(pts * this.flow * this.pointMul());
+    addPoints(pts, x, y, label, flat) {
+      const total = Math.round(pts * (flat ? 1 : this.flow * this.pointMul()));
       this.nightScore += total;
       FX.text(x, y, (label ? label + ' ' : '') + '+' + total, { size: 18, col: '#ffe08a' });
       Au.play('coin', null, 0.05);
@@ -316,6 +359,11 @@
       const wv = this.def.waves;
       if (W.state === 'calm') {
         W.t -= dt;
+        // harder difficulties keep a trickle of single problems coming between waves
+        if (this.diff.trickle && this.activeTrouble() < this.def.maxEv && Math.random() < this.diff.trickle * dt) {
+          const minor = ['phone', 'talker', 'birds', 'roomba', 'gossip', 'printer'].filter((t) => this.def.deck.includes(t) && this.seen.has(t) && this.canSpawn(t));
+          if (minor.length) this.spawn(U.pick(minor));
+        }
         if (W.t <= 0) {
           W.state = 'rush';
           W.queue = U.randi(wv.size[0], wv.size[1]);
@@ -359,6 +407,9 @@
         }
       }
       const seat = Wd.playerSeat;
+      if (this.mySubmitted && this.proofTarget() && !p.carry) {
+        list.push({ x: seat.x, y: seat.y, r: 66, prio: 3, label: 'Proofread for friends', press: () => this.sit() });
+      }
       if (!this.mySubmitted) {
         const full = p.carry === 'toddler';
         const label = full ? 'Hands full!' : p.carry === 'coffee' ? 'Sit + chug coffee' : p.carry ? 'Set it down + write' : 'Sit & write essay';
@@ -619,7 +670,7 @@
       Au.play('submit');
       this.shake(6);
       this.hitstop(0.08);
-      this.autoStandT = 1.3;
+      if (this.students.some((s) => s.state === 'study')) FX.text(seat.x, seat.y - 170, 'Keep writing: now you PROOFREAD for friends!', { size: 18, col: '#9fe0ff', life: 2.4 });
       if (this.has('groupchat')) for (const o of this.students) if (o.state === 'study') o.focus = Math.min(100, o.focus + 35);
       this.checkAllDone();
     }
@@ -660,7 +711,8 @@
       const full = count === total;
       const fullBonus = full ? 1500 : 0;
       const timeBonus = this.endReason === 'allclear' ? Math.round((this.duration - this.time) * 15) : 0;
-      const nightScore = this.nightScore + fullBonus + timeBonus;
+      const diffBonus = Math.round((this.nightScore + fullBonus + timeBonus) * (this.diff.score - 1));
+      const nightScore = this.nightScore + fullBonus + timeBonus + diffBonus;
       let grade = 'F';
       if (full && this.endReason === 'allclear') grade = 'A+';
       else if (full) grade = 'A';
@@ -668,7 +720,7 @@
       else if (pass) grade = 'C';
       const res = {
         def: this.def, endless: this.endless, count, total, quota: this.def.quota, pass, full, grade,
-        base: this.nightScore, fullBonus, timeBonus, nightScore, handled: this.handled, bestFlow: this.bestFlow,
+        base: this.nightScore, fullBonus, timeBonus, diffBonus, diff: this.diff, nightScore, handled: this.handled, bestFlow: this.bestFlow,
         names: [{ name: run.ch.name + ' (you)', ok: this.mySubmitted, look: run.ch.look, progress: this.myProgress }].concat(this.students.map((s) => ({ name: s.name, ok: s.state === 'submitted', look: s.look, progress: s.progress, college: s.college }))),
         essay: { perfect: this.essay.perfect, written: this.essay.written, best: this.essay.best },
         grooves: this.grooves,
@@ -804,7 +856,7 @@
       // events
       for (const ev of this.events) {
         ev.update(dt, this);
-        const life = ev.meta && ev.meta.life;
+        const life = this.lifeOf(ev);
         if (life && !ev.resolved && !ev.noExpire && ev.t > life) ev.expire();
       }
       for (const ev of this.events) if (ev.dead && !ev.resolved) ev.end(this);
@@ -832,9 +884,10 @@
           s.distract();
           continue;
         }
-        if (!s.progressBlocked()) {
+        const pm = s.progressMul();
+        if (pm > 0) {
           const f = 0.4 + 0.6 * (s.focus / 100);
-          s.progress += rate * f * (s.boostT > 0 ? 1.5 : 1) * (this.grooveT > 0 ? 1.5 : 1) * (this.dark ? 0.75 : 1) * dt;
+          s.progress += rate * f * pm * (s.boostT > 0 ? 1.5 : 1) * (this.grooveT > 0 ? 1.5 : 1) * (this.dark ? 0.75 : 1) * dt;
           if (this.grooveT > 0 && Math.random() < dt * 1.2) FX.icon(s.seat.x + U.rand(-20, 20), s.seat.y - 60, 'note', { bg: null, size: 9, vy: -60 });
           if (s.progress >= 100) this.submitStudent(s);
         }
@@ -929,7 +982,7 @@
       const p = this.player;
       if (p.seated) {
         const seat = Wd.playerSeat;
-        list.push({ y: seat.table.y - 1, fn: (c) => A.person(c, seat.x, seat.y, Object.assign({ chair: '#7b4a8c' }, p.look), { pose: this.mySubmitted ? 'cheer' : 'type', t: p.typeAnim > 0 ? this.realT : 0, emo: this.mySubmitted ? 'happy' : this.noiseAt(seat) > 4 && !this.stats.calm ? 'stress' : 'focus', lean: 2 }) });
+        list.push({ y: seat.table.y - 1, fn: (c) => A.person(c, seat.x, seat.y, Object.assign({ chair: '#7b4a8c' }, p.look), { pose: this.mySubmitted && !this.proofTarget() ? 'cheer' : 'type', t: p.typeAnim > 0 ? this.realT : 0, emo: this.mySubmitted ? 'happy' : this.noiseAt(seat) > 4 && !this.stats.calm ? 'stress' : 'focus', lean: 2 }) });
       } else {
         // empty chair for the player
         const seat = Wd.playerSeat;

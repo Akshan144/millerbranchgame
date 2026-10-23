@@ -4,6 +4,8 @@ A hand-drawn arcade game about keeping your high school study group focused thro
 
 Rogue Roombas, speakerphone talkers, pigeons in the stacks, a raccoon with your flash drive, a fire alarm, a power outage and, on Halloween night, a library ghost who only respects a proper *SHHH*. Keep your friends focused, write a gloriously ridiculous college essay between emergencies, and get enough applications submitted before midnight, five nights in a row.
 
+Pick a difficulty for every run: **Easy** (chill, long breathers), **Normal** (bigger waves, a steady trickle of trouble, longer essays) or **Hard** (relentless, no safety net). Harder settings multiply your score.
+
 New players start with **Orientation Night**, an interactive tutorial hosted by Ms. Okafor the librarian. It plays before story mode (skip with Esc or Tab) and is on the main menu.
 
 ## Play
@@ -33,7 +35,8 @@ npx http-server .   # then open http://localhost:8080
 - **Waves, then calm.** Distractions arrive in short rushes with real breathing room between them. Anything you ignore eventually sorts itself out (the ring around each alert shows how long), so problems never snowball. Fixing them fast just earns more.
 - **Groove mode.** A calm library fills the Groove meter. At full, everyone writes 70% faster, nothing new goes wrong, and points double.
 - **Focus rings.** Every friend has one. Nearby noise drains it; quiet lets it recover. At zero they wander off to doomscroll until you pep-talk them back.
-- **Progress bars.** Focused friends write faster. A full bar means SUBMITTED. Each night has a quota; missing it uses up one of your extensions (2 in story mode, 3 in Rolling Admissions) before the run is over.
+- **Progress bars.** Focused friends write faster. A full bar means SUBMITTED. Each night has a quota; missing it uses up one of your extensions (how many depends on difficulty) before the run is over.
+- **Proofreading.** Once your own essay is submitted, sit back down: every line you write now boosts whichever friend is furthest behind, so there's never dead time.
 - **Your essay.** Sit down and build it line by line. Three cards appear; the admissions reader wants HEART, WIT or GRIT, so pick the line that matches. Avoid the grey CLASSIC clichés. Noise near your seat fogs a card. The report card quotes your best line.
 - **Flow.** Fix things quickly and back to back to build a points multiplier up to x8. SHHH two things at once for a multi-shush bonus.
 - **Coffee and pizza.** Vending-machine coffee wakes nappers, boosts a friend, or turbo-charges your own typing. A surprise pizza delivery can be shared slice by slice.

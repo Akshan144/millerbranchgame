@@ -141,7 +141,7 @@
       return !g.stats.calm && g.grooveT <= 0 && g.noiseAt(MB.World.playerSeat) > 3.5;
     }
     choose(i) {
-      if (this.typing || !this.cards[i] || this.g.mySubmitted) return;
+      if (this.typing || !this.cards[i] || (this.g.mySubmitted && !this.g.proofTarget())) return;
       const c = this.cards[i];
       const fog = this.foggy() && i === this.fogIdx;
       this.typing = { card: c, fog, text: fog ? U.pick(FOG) : c.text, n: 0, acc: 0 };
@@ -176,8 +176,16 @@
         this.best = c.text;
       } else this.streak = 0;
       const base = 100 / g.def.essayLines;
-      const amt = base * mult * g.stats.type * (g.typeBoostT > 0 ? 1.25 : 1) * (g.grooveT > 0 ? 1.3 : 1);
-      g.myProgress = Math.min(100, g.myProgress + amt);
+      const boost = (g.typeBoostT > 0 ? 1.25 : 1) * (g.grooveT > 0 ? 1.3 : 1);
+      // after you submit, every line goes to the friend who is furthest behind
+      const proof = g.mySubmitted ? g.proofTarget() : null;
+      const amt = proof ? { match: 6, meh: 3.5, cliche: 1, fog: 1 }[kind] * Math.sqrt(g.stats.type) * boost : base * mult * g.stats.type * boost;
+      if (proof) {
+        proof.progress = Math.min(100, proof.progress + amt);
+        proof.say(kind === 'match' ? U.pick(['ooh good edit', 'TY!!', 'that line slaps']) : 'thanks...', 1.2);
+        FX.arc(MB.World.playerSeat.x, MB.World.playerSeat.y - 60, proof.seat.x, proof.seat.y - 50, 'crest', { life: 0.5, height: 80, spin: false });
+        if (proof.progress >= 100) g.submitStudent(proof);
+      } else g.myProgress = Math.min(100, g.myProgress + amt);
       this.written++;
       this.lines.push({ text: ty.text, kind, tone: c.tone });
       if (this.lines.length > 40) this.lines.shift();
@@ -186,14 +194,14 @@
       const seat = MB.World.playerSeat;
       const label = kind === 'match' ? (this.streak > 1 ? 'VOICE STREAK x' + this.streak : 'PERFECT VIBE!') : kind === 'cliche' ? 'CLICHÉ...' : kind === 'fog' ? 'BRAIN FOG' : 'OK LINE';
       const col = kind === 'match' ? '#9fe08a' : kind === 'meh' ? '#fff6e6' : '#ff9a8a';
-      FX.text(seat.x, seat.y - 110, label + '  +' + Math.round(amt) + '%', { size: kind === 'match' ? 22 : 17, col, life: 1.3 });
+      FX.text(seat.x, seat.y - 110, label + '  +' + Math.round(amt) + '%' + (proof ? ' for ' + proof.name : ''), { size: kind === 'match' ? 22 : 17, col, life: 1.3 });
       if (kind === 'match') {
         Au.play('combo', this.streak + 1);
         FX.confetti(seat.x, seat.y - 70, 12, 0.5);
-        g.addPoints(120, seat.x, seat.y - 140);
+        g.addPoints(proof ? 80 : 120, seat.x, seat.y - 140, null, true);
       } else if (kind === 'meh') {
         Au.play('coin');
-        g.addPoints(50, seat.x, seat.y - 140);
+        g.addPoints(proof ? 30 : 50, seat.x, seat.y - 140, null, true);
       } else Au.play('bad');
       g.player.typeAnim = 0.4;
       this.wantLeft--;
@@ -204,7 +212,7 @@
         this.wantFlash = 1;
       }
       this.deal();
-      if (g.myProgress >= 100) g.submitMine();
+      if (!proof && !g.mySubmitted && g.myProgress >= 100) g.submitMine();
     }
   }
   MB.Essay = Essay;
