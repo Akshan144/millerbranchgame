@@ -259,8 +259,9 @@
 
   // --- top bar ------------------------------------------------------------------------------
   function drawClock(ctx, g) {
-    const final = g.p01 > 0.9;
-    const pulse = final ? 1 + Math.sin(g.realT * 8) * 0.03 : 1;
+    const crunch = g.crunch || 0;
+    const final = crunch > 0;
+    const pulse = final ? 1 + Math.sin(g.realT * (8 + 6 * crunch)) * (0.025 + 0.025 * crunch) : 1;
     ctx.save();
     ctx.translate(124, 62);
     ctx.scale(pulse, pulse);
@@ -278,7 +279,10 @@
     A.fs(ctx, '#e8dcc8', 2);
     ctx.fillStyle = final ? '#e0524a' : '#8a5ac2';
     ctx.fillRect(-94, 30, 180 * g.p01, 6);
-    A.text(ctx, 'DUE 12:00', 84, -28, { size: 12, color: '#e0524a', outline: 0, align: 'right' });
+    if (final) {
+      const sec = Math.ceil(g.timeLeft);
+      A.text(ctx, Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0') + ' LEFT', 88, -28, { size: 14, color: '#d23c34', outline: 0, align: 'right' });
+    } else A.text(ctx, 'DUE 12:00', 84, -28, { size: 12, color: '#e0524a', outline: 0, align: 'right' });
     done();
     ctx.restore();
   }

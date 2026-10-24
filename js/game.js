@@ -60,22 +60,22 @@
   const D4 = D3.concat(['outage', 'alarm', 'raccoon']);
   const D5 = D4.concat(['ghost']);
   MB.NIGHTS = [
-    { n: 1, day: 'MONDAY', date: 'OCT 27', title: 'The Brainstorm', task: 'Personal essay: rough draft', weather: 'clear', friends: 2, quota: 2, duration: 150, work: 118, essayLines: 9,
+    { n: 1, song: 'n1', day: 'MONDAY', date: 'OCT 27', title: 'The Brainstorm', task: 'Personal essay: rough draft', weather: 'clear', friends: 2, quota: 2, duration: 150, work: 118, essayLines: 9,
       waves: { first: 6, calm: [12, 16], size: [1, 2], gap: [3, 5] }, maxEv: 2, deck: D1, intro: ['phone', 'talker', 'roomba', 'avalanche'] },
-    { n: 2, day: 'TUESDAY', date: 'OCT 28', title: 'First Drafts', task: 'Supplemental essays', weather: 'wind', friends: 2, quota: 2, duration: 155, work: 122, essayLines: 10,
+    { n: 2, song: 'n2', day: 'TUESDAY', date: 'OCT 28', title: 'First Drafts', task: 'Supplemental essays', weather: 'wind', friends: 2, quota: 2, duration: 155, work: 122, essayLines: 10,
       waves: { first: 6, calm: [10, 14], size: [1, 2], gap: [3, 4.5] }, maxEv: 3, deck: D2, intro: ['printer', 'sleeper', 'wifi', 'birds', 'pizza'] },
-    { n: 3, day: 'WEDNESDAY', date: 'OCT 29', title: 'Why Us?', task: '"Why our school?" essays', weather: 'rain', friends: 3, quota: 3, duration: 160, work: 126, essayLines: 10,
+    { n: 3, song: 'n3', day: 'WEDNESDAY', date: 'OCT 29', title: 'Why Us?', task: '"Why our school?" essays', weather: 'rain', friends: 3, quota: 3, duration: 160, work: 126, essayLines: 10,
       waves: { first: 6, calm: [10, 13], size: [1, 3], gap: [2.5, 4] }, maxEv: 3, deck: D3, intro: ['leak', 'gossip', 'toddlers'] },
-    { n: 4, day: 'THURSDAY', date: 'OCT 30', title: 'The Activities List', task: '150 characters per activity', weather: 'fog', friends: 3, quota: 3, duration: 165, work: 130, essayLines: 11,
+    { n: 4, song: 'n4', day: 'THURSDAY', date: 'OCT 30', title: 'The Activities List', task: '150 characters per activity', weather: 'fog', friends: 3, quota: 3, duration: 165, work: 130, essayLines: 11,
       waves: { first: 6, calm: [9, 12], size: [2, 3], gap: [2.5, 4] }, maxEv: 4, deck: D4, intro: ['raccoon', 'outage', 'alarm'] },
-    { n: 5, day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 3, quota: 3, duration: 170, work: 134, essayLines: 12,
+    { n: 5, song: 'n5', day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 3, quota: 3, duration: 170, work: 134, essayLines: 12,
       waves: { first: 6, calm: [8, 12], size: [2, 3], gap: [2.5, 3.5] }, maxEv: 4, deck: D5, intro: ['ghost'] },
   ];
   MB.nightDef = function (run) {
     if (run.mode !== 'endless') return MB.NIGHTS[run.nightIdx];
     const k = run.nightIdx;
     const weathers = ['clear', 'wind', 'rain', 'fog'];
-    return {
+    const def = {
       n: 5 + k, endlessIdx: k + 1, day: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'][k % 7], date: 'NOV ' + (1 + k), title: 'Rolling Admissions ' + (k + 1),
       task: U.pick(['Scholarship essays', 'Honors college app', 'Waitlist letter', 'Financial aid forms', 'Portfolio upload']),
       weather: U.pick(weathers), halloween: k % 7 === 6, friends: 3, quota: k < 4 ? 3 : 4,
@@ -83,6 +83,8 @@
       waves: { first: 5, calm: [Math.max(4, 9.5 - k * 0.7), Math.max(6, 12.5 - k * 0.7)], size: [2, Math.min(6, 2 + Math.ceil(k / 2))], gap: [2, 3.2] },
       maxEv: Math.min(7, 3 + Math.ceil(k / 2)), deck: D5, intro: [],
     };
+    def.song = def.halloween ? 'n5' : ['n2', 'n4', 'n1', 'n3'][k % 4];
+    return def;
   };
 
   MB.UPGRADES = [
@@ -232,6 +234,7 @@
       this.typeBoostT = 0;
       this.autoStandT = 0;
       this.lastMinute = -1;
+      this.lastSec = 1e9;
       this.essay = new MB.Essay(this);
       this.libT = U.rand(6, 12);
       this.libLine = null;
@@ -239,13 +242,16 @@
       this.heartT = 0;
       this.seen = new Set();
       FX.clear();
-      Au.Music.set({ mode: def.halloween ? 'spooky' : 'chill', intensity: 1, bpm: 84 });
+      Au.Music.set({ song: def.song || 'n1', intensity: 1, crunch: 0 });
       Au.Music.filter(9000, 0.1);
       Au.Music.duck(1);
     }
     has(id) { return this.run.upgrades[id] || 0; }
     get p01() { return U.clamp(this.time / this.duration, 0, 1); }
     get minutes() { return this.p01 * 180; }
+    get timeLeft() { return Math.max(0, this.duration - this.time); }
+    // 0 until the last real minute of the night, then ramps 0 -> 1 toward midnight
+    get crunch() { return this.phase === 'play' && this.timeLeft < 60 ? 1 - this.timeLeft / 60 : 0; }
     shake(n) { this.shakeAmt = Math.max(this.shakeAmt, n); }
     hitstop(t) { this.freeze = Math.max(this.freeze, t); }
     slowAt(x, y) {
@@ -698,7 +704,7 @@
       this.dark = false;
       Au.Music.filter(9000);
       Au.Music.duck(1);
-      Au.Music.set({ intensity: 0, bpm: 76 });
+      Au.Music.set({ intensity: 0, crunch: 0 });
       const pass = this.submittedCount() >= this.def.quota;
       if (reason === 'allclear') {
         FX.pop(640, 300, 'EVERYONE SUBMITTED!', { size: 54, col: '#9fe08a', life: 3, sub: 'with ' + Math.ceil(this.duration - this.time) + 's to spare' });
@@ -925,10 +931,25 @@
       }
 
       // music + clock
-      const p01 = this.p01;
       const trouble = this.activeTrouble();
-      const intensity = p01 > 0.92 ? 3 : this.grooveT > 0 || trouble >= 2 ? 2 : 1;
-      Au.Music.set({ intensity, bpm: p01 > 0.92 ? 96 : this.grooveT > 0 ? 90 : 84 });
+      const crunch = this.crunch;
+      Au.Music.set({ intensity: this.grooveT > 0 || trouble >= 2 ? 2 : 1, crunch });
+      const secs = Math.ceil(this.timeLeft);
+      if (secs !== this.lastSec) {
+        if (secs <= 60 && this.lastSec > 60) {
+          FX.pop(640, 300, 'CRUNCH TIME!', { size: 60, col: '#ff9a8a', life: 2, sub: '60 seconds left. the music knows.' });
+          Au.play('alarm');
+          this.shake(6);
+          const s = this.students.find((q) => q.state === 'study');
+          if (s) s.say(U.pick(['ONE MINUTE?!', 'type faster type faster', 'why is the music doing that', 'we are SO back. or so done.']), 2);
+        } else if (secs <= 15 && this.lastSec > 15) {
+          FX.pop(640, 300, '15 SECONDS!', { size: 54, col: '#ff6a5a', life: 1.4 });
+          Au.play('heartbeat');
+          this.shake(7);
+        }
+        if (crunch > 0.5) Au.play('tick');
+        this.lastSec = secs;
+      }
       const minute = Math.floor(this.minutes);
       if (minute !== this.lastMinute) {
         if (minute === this.cameoAt) {
@@ -937,19 +958,9 @@
           const s = this.students.find((q) => q.state === 'study');
           if (s) s.say(U.pick(['did the window just wave??', 'ok who else saw that', 'is that... a ghost?', 'nope. not looking.']), 2.2);
         }
-        if (minute === 120) {
-          FX.pop(640, 300, 'FINAL HOUR!', { size: 58, col: '#ff9a8a', life: 1.8, sub: 'the music knows' });
-          Au.play('alarm');
-          this.shake(5);
-        } else if (minute === 170) {
-          FX.pop(640, 300, '10 MINUTES LEFT!', { size: 54, col: '#ff6a5a', life: 1.6 });
-          Au.play('heartbeat');
-          this.shake(6);
-        }
         this.lastMinute = minute;
-        if (p01 > 0.92) Au.play('tick');
       }
-      if (p01 > 0.95) {
+      if (crunch > 0.75) {
         this.heartT -= dt;
         if (this.heartT <= 0) {
           this.heartT = 0.9;
@@ -1027,8 +1038,8 @@
         ctx.fillStyle = `rgba(255,30,30,${0.08 + 0.08 * Math.sin(this.realT * 12)})`;
         ctx.fillRect(0, 0, W, H);
       }
-      const final = this.p01 > 0.9 && this.phase === 'play';
-      Wd.drawPost(ctx, 0.5, final ? 0.55 + 0.3 * Math.sin(this.realT * 7) : 0);
+      const final = this.crunch > 0;
+      Wd.drawPost(ctx, 0.5, final ? (0.3 + 0.4 * this.crunch) * (1 + 0.5 * Math.sin(this.realT * (5 + 5 * this.crunch))) : 0);
       ctx.restore();
       MB.HUD.draw(ctx, this);
     }

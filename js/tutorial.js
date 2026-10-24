@@ -126,6 +126,7 @@
       this.after = after;
       this.def = Object.assign({}, MB.NIGHTS[0], { n: 0, day: 'SUNDAY', date: 'OCT 26', title: 'Orientation', task: 'Learn the ropes', intro: [] });
       this.duration = 1e9;
+      Au.Music.set({ song: 'tutorial', intensity: 1, crunch: 0 });
       this.phase = 'play';
       this.libT = 1e9;
       this.wave.state = 'off';

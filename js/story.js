@@ -109,6 +109,7 @@
         ['say', r.P, 'TRAITOR.'],
         ['say', r.A, 'I will be back Wednesday. Save my seat.', 'happy'],
         ['fx', 'ghostwin'],
+        ['music', 'mystery'],
         ['wait', 1.4],
         ['emo', 'all', 'shock'],
         ['say', 'bryan', 'Did that window just... wave at us?', 'shock'],
@@ -116,6 +117,7 @@
         ['say', 'max', 'Classic sleep-deprivation hallucination. Totally normal.'],
         ['emo', 'all', 'neutral'],
         ['say', 'akshan', 'Gentlemen. To the library.', 'focus'],
+        ['music', 'story'],
         ['walkall', 900, 640],
         ['wait', 1.2],
       ] };
@@ -156,6 +158,7 @@
           ...intro('n2'),
           ['say', 'okafor', 'Also, the Wi-Fi has been temperamental tonight. Like my cat.'],
           ['fx', 'flicker'],
+          ['music', 'mystery'],
           ['sfx', 'ghost'],
           ['wait', 0.9],
           ['emo', 'all', 'shock'],
@@ -163,6 +166,7 @@
           ['say', r.F1, 'It is the air conditioning. Libraries are always cold. It is in the bylaws.'],
           ['emo', 'all', 'neutral'],
           ['say', r.P, 'Okay. Supplements. Nobody look at the windows.'],
+          ['music', 'story'],
         ] };
       }
       if (n === 3) {
@@ -185,10 +189,12 @@
           ['say', 'max', 'BRYAN.', 'angry'],
           ['emo', 'all', 'neutral'],
           ['say', 'max', V('max', 'n3')],
+          ['music', 'mystery'],
           ['say', 'okafor', 'It is not just the Roomba, dears. This library is not cursed. It is haunted. Different paperwork.'],
           ['emo', 'all', 'shock'],
           ['fx', 'shake'],
           ['say', r.P, 'I am sorry, it is WHAT?', 'shock'],
+          ['music', 'story'],
           ['say', 'okafor', 'Kidding. Mostly. "Why Us?" essays, please.'],
         ] };
       }
@@ -198,6 +204,7 @@
           ['cast', cast],
           ['say', 'okafor', 'The Activities List, dears. 150 characters per activity. Make every one count.'],
           ...intro('n4'),
+          ['music', 'mystery'],
           ['ghost', 1180, 380, 0],
           ['ghostto', 1050, 380, 0.75],
           ['sfx', 'ghost'],
@@ -209,6 +216,7 @@
           ['say', 'okafor', 'That is just Dewey. He is harmless. Very organized.'],
           ['say', r.F2, 'WHO IS DEWEY?', 'shock'],
           ['emo', 'all', 'neutral'],
+          ['music', 'story'],
           ['say', 'okafor', 'Fog is rolling in. The power gets moody when it is foggy. Write fast.'],
         ] };
       }
@@ -219,6 +227,7 @@
         ...intro('n5'),
         ['say', 'okafor', 'Happy Halloween. Deadline is midnight. Dewey is... restless.'],
         ['fx', 'dark'],
+        ['music', 'mystery'],
         ['sfx', 'ghost'],
         ['ghost', 640, 470, 0],
         ['ghostto', 640, 470, 0.9],
@@ -234,6 +243,7 @@
         ['ghostto', 640, 470, 0],
         ['fx', 'light'],
         ['emo', 'all', 'neutral'],
+        ['music', 'triumph'],
         ['say', 'akshan', 'Colleagues. Whatever happens tonight: we all hit submit.', 'focus'],
         ['say', r.P, 'Everybody hits submit. Let us go.', 'focus'],
       ] };
@@ -247,11 +257,13 @@
         ['cast', cast],
         ['say', r.P, 'Did we... actually do it?'],
         ['fx', 'confetti'],
+        ['music', 'triumph'],
         ['emo', 'all', 'happy'],
         ['pose', 'all', 'cheer'],
         ['sfx', 'fanfare'],
         ['say', 'max', 'Pulse check: everybody is alive. Mostly.', 'happy'],
         ['pose', 'all', 'stand'],
+        ['music', 'mystery'],
         ['ghost', 640, 470, 0],
         ['ghostto', 640, 470, 0.85],
         ['sfx', 'ghost'],
@@ -270,6 +282,7 @@
         ['face', 'bryan', 'down'],
         ['say', 'bryan', 'Fixed. It is sending.', 'happy'],
         ['fx', 'golden'],
+        ['music', 'triumph'],
         ['sfx', 'submit'],
         ['say', 'ghost', 'It is... sending? IT IS SENDING!'],
         ['say', 'rishit', 'Quick question: do ghosts get financial aid?'],
@@ -324,7 +337,7 @@
       this.waitT = 0;
       this.ghost = null;
       FX.clear();
-      Au.Music.set({ intensity: 0, mode: this.def.halloween && !script.late ? 'spooky' : 'chill', bpm: 76 });
+      Au.Music.set({ song: script.music || 'story', intensity: 1, crunch: 0 });
       this.next();
     }
     look(id) {
@@ -389,6 +402,9 @@
           return true;
         case 'sfx':
           Au.play(a);
+          return false;
+        case 'music':
+          Au.Music.set({ song: a });
           return false;
         case 'ghost':
           this.ghost = { x: a, y: b, alpha: c, tx: a, ty: b, ta: c, golden: false };

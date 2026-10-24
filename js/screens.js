@@ -495,6 +495,7 @@
   // --- title -----------------------------------------------------------------------------------------
   S.title = function () {
     const st = { name: 'title', t: 0, sel: 0, ready: Au.ready, rects: [] };
+    if (Au.ready) Au.Music.set({ song: 'menu', intensity: 0, crunch: 0 });
     const items = [
       { label: 'START STUDYING', sub: '5-night campaign · the Nov 1 deadline', go: () => MB.go(S.difficulty('campaign')) },
       { label: 'ROLLING ADMISSIONS', sub: 'endless nights · chase a high score', go: () => MB.go(S.difficulty('endless')) },
@@ -507,7 +508,7 @@
       if (!st.ready) {
         if (In.anyHit()) {
           Au.init();
-          Au.Music.set({ intensity: 0, mode: 'chill', bpm: 76 });
+          Au.Music.set({ song: 'menu', intensity: 0, crunch: 0 });
           st.ready = true;
           Au.play('confirm');
         }
@@ -703,6 +704,8 @@
     const prevDeck = run.mode === 'endless' ? [] : run.nightIdx > 0 ? MB.NIGHTS[run.nightIdx - 1].deck : [];
     const fresh = def.deck.filter((d) => !prevDeck.includes(d));
     const shown = run.mode === 'endless' && run.nightIdx === 0 ? [] : fresh;
+    const song = Au.SONGS[def.song] || Au.SONGS.n1;
+    Au.Music.set({ song: def.song, intensity: 0, crunch: 0 });
     st.update = (dt) => {
       st.t += dt;
       if (In.hit('mute')) Au.toggleMute();
@@ -775,6 +778,12 @@
         const tips = ['Tip: pep-talk wandering friends before their focus tanks the group.', 'Tip: fix things fast to stack your Flow multiplier.', 'Tip: coffee from the vending machine wakes nappers and turbo-charges typing.'];
         A.text(ctx, tips[(def.n + (def.endlessIdx || 0)) % tips.length], 0, -ch / 2 + 400, { size: 18, font: A.F.hand, color: A.C.inkSoft, outline: 0 });
       }
+      const bob = Math.sin(st.t * 4) * 2;
+      const track = 'tonight\'s track: “' + song.title + '”';
+      ctx.font = `18px ${A.F.hand}`;
+      const tw = ctx.measureText(track).width;
+      A.icon(ctx, 'note', -tw / 2 - 4, ch / 2 - 28 + bob, 11, '#efe4ff');
+      A.text(ctx, track, 14, ch / 2 - 28, { size: 18, font: A.F.hand, color: '#8a5ac2', outline: 0 });
       ctx.restore();
       if (st.t > 0.5) {
         ctx.save();
@@ -1086,7 +1095,7 @@
     const rank = ranks.find((r) => run.score >= r[0])[1];
     const st = { name: 'ending', t: 0, sel: 0, rects: [], opened: 0 };
     const options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.difficulty('campaign')) }, { label: 'ROLLING ADMISSIONS', go: () => MB.go(S.difficulty('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
-    Au.Music.set({ intensity: 1, mode: 'chill', bpm: 80 });
+    Au.Music.set({ song: 'triumph', intensity: 1, crunch: 0 });
     st.update = (dt) => {
       st.t += dt;
       FX.update(dt);
