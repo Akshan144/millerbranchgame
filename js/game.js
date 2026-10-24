@@ -68,7 +68,7 @@
       waves: { first: 6, calm: [10, 13], size: [1, 3], gap: [2.5, 4] }, maxEv: 3, deck: D3, intro: ['leak', 'gossip', 'toddlers'] },
     { n: 4, day: 'THURSDAY', date: 'OCT 30', title: 'The Activities List', task: '150 characters per activity', weather: 'fog', friends: 3, quota: 3, duration: 165, work: 130, essayLines: 11,
       waves: { first: 6, calm: [9, 12], size: [2, 3], gap: [2.5, 4] }, maxEv: 4, deck: D4, intro: ['raccoon', 'outage', 'alarm'] },
-    { n: 5, day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 4, quota: 4, duration: 170, work: 134, essayLines: 12,
+    { n: 5, day: 'FRIDAY', date: 'OCT 31', title: 'Submit Night', task: 'Final proofread + SUBMIT', weather: 'clear', halloween: true, friends: 3, quota: 3, duration: 170, work: 134, essayLines: 12,
       waves: { first: 6, calm: [8, 12], size: [2, 3], gap: [2.5, 3.5] }, maxEv: 4, deck: D5, intro: ['ghost'] },
   ];
   MB.nightDef = function (run) {
@@ -78,7 +78,7 @@
     return {
       n: 5 + k, endlessIdx: k + 1, day: ['SAT', 'SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI'][k % 7], date: 'NOV ' + (1 + k), title: 'Rolling Admissions ' + (k + 1),
       task: U.pick(['Scholarship essays', 'Honors college app', 'Waitlist letter', 'Financial aid forms', 'Portfolio upload']),
-      weather: U.pick(weathers), halloween: k % 7 === 6, friends: 4, quota: k < 2 ? 3 : k < 5 ? 4 : 5,
+      weather: U.pick(weathers), halloween: k % 7 === 6, friends: 3, quota: k < 4 ? 3 : 4,
       duration: 165, work: Math.min(172, 126 + k * 7), essayLines: Math.min(16, 12 + Math.floor(k / 2)),
       waves: { first: 5, calm: [Math.max(4, 9.5 - k * 0.7), Math.max(6, 12.5 - k * 0.7)], size: [2, Math.min(6, 2 + Math.ceil(k / 2))], gap: [2, 3.2] },
       maxEv: Math.min(7, 3 + Math.ceil(k / 2)), deck: D5, intro: [],
@@ -161,7 +161,7 @@
     diff = diff || U.store.get('diff', 'normal');
     MB.run = {
       ch: MB.CHARACTERS[charIdx], charIdx, mode, nightIdx: 0, score: 0, upgrades: {},
-      friends: U.shuffle(MB.FRIENDS).slice(0, 4), records: {}, history: [], snapshot: null, diff,
+      friends: MB.friendsFor(MB.CHARACTERS[charIdx]), records: {}, history: [], snapshot: null, diff,
       extensions: MB.DIFFS[diff].ext[mode === 'endless' ? 1 : 0],
     };
     return MB.run;
@@ -196,6 +196,14 @@
       const seatOrder = ['T1L', 'T2R', 'T1R', 'T2L', 'T3R'];
       this.students = run.friends.slice(0, def.friends).map((f, i) => new MB.Student(f, Wd.seats.find((s) => s.id === seatOrder[i]), i));
       if (this.has('snacks')) for (const s of this.students) s.progress = 6 * this.has('snacks');
+      // Halloween costumes on Submit Night
+      if (def.halloween && !this.endless) {
+        for (const s of this.students) s.look = Object.assign({}, s.look, MB.COSTUMES[s.id] || {});
+        this.player.look = Object.assign({}, this.player.look, MB.COSTUMES[run.ch.id] || {});
+      }
+      // Dewey peeks through the windows on nights 2-4 of the story
+      this.cameoAt = !this.endless && def.n >= 2 && def.n <= 4 ? U.randi(80, 110) : -1;
+      this.cameo = null;
       this.events = [];
       this.intro = (def.intro || []).slice();
       this.wave = { state: 'calm', t: def.waves.first, queue: 0, gapT: 0, settleT: 0 };
@@ -649,7 +657,7 @@
       s.progress = 100;
       s.cheerT = 3.5;
       for (const k in s.flags) s.flags[k] = false;
-      s.say(U.pick(MB.LINES.submit), 2.5);
+      s.say(MB.line(s.id, 'submit'), 2.5);
       FX.confetti(s.seat.x, s.seat.y - 50, 70);
       FX.pop(s.seat.x, s.seat.y - 120, 'SUBMITTED!', { col: '#9fe08a', size: 36, sub: '+1000' });
       FX.arc(s.seat.x, s.seat.y - 60, 640, 40, 'crest', { life: 1, height: 120, spin: false });
@@ -923,6 +931,12 @@
       Au.Music.set({ intensity, bpm: p01 > 0.92 ? 96 : this.grooveT > 0 ? 90 : 84 });
       const minute = Math.floor(this.minutes);
       if (minute !== this.lastMinute) {
+        if (minute === this.cameoAt) {
+          this.cameo = { t: 0 };
+          Au.play('ghost');
+          const s = this.students.find((q) => q.state === 'study');
+          if (s) s.say(U.pick(['did the window just wave??', 'ok who else saw that', 'is that... a ghost?', 'nope. not looking.']), 2.2);
+        }
         if (minute === 120) {
           FX.pop(640, 300, 'FINAL HOUR!', { size: 58, col: '#ff9a8a', life: 1.8, sub: 'the music knows' });
           Au.play('alarm');
@@ -1035,6 +1049,18 @@
         ctx.fill();
       }
       if (this.def.halloween) this.drawHalloweenWall(ctx);
+      if (this.cameo) {
+        this.cameo.t += 1 / 60;
+        const k = this.cameo.t / 3.4;
+        if (k >= 1) this.cameo = null;
+        else {
+          ctx.save();
+          ctx.translate(320 + k * 640, 120 + Math.sin(k * 9) * 6);
+          ctx.scale(0.55, 0.55);
+          A.ghost(ctx, 0, 0, this.realT, Math.sin(k * Math.PI) * 0.6, false);
+          ctx.restore();
+        }
+      }
     }
     drawHalloweenWall(ctx) {
       // string lights along the sill + cobwebs

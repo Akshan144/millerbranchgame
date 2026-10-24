@@ -4,6 +4,17 @@ A hand-drawn arcade game about keeping your high school study group focused thro
 
 Rogue Roombas, speakerphone talkers, pigeons in the stacks, a raccoon with your flash drive, a fire alarm, a power outage and, on Halloween night, a library ghost who only respects a proper *SHHH*. Keep your friends focused, write a gloriously ridiculous college essay between emergencies, and get enough applications submitted before midnight, five nights in a row.
 
+## The story
+
+Max, Akshan, Rishit and Bryan have five nights at the Miller Branch to finish their early applications. You play one of them; the other three are your tablemates. Each night opens with a cutscene, and the week builds to a Halloween showdown with the library's resident ghost and a Decision Day finale.
+
+| | Applying to | Major | Perk |
+| --- | --- | --- | --- |
+| **Max** | Duke (ED) | pre-med | Pep talks restore full focus; coffee lasts longer |
+| **Akshan** | Yale (EA) | policy + econ | A filibuster-grade SHHH: farther reach, faster recharge |
+| **Rishit** | Columbia (ED) | policy + environmental science | Bikes everywhere: faster on foot, quicker dash |
+| **Bryan** | Princeton (SCEA) | engineering | Essay lines count more; immune to noise fog |
+
 Pick a difficulty for every run: **Easy** (chill, long breathers), **Normal** (bigger waves, a steady trickle of trouble, longer essays) or **Hard** (relentless, no safety net). Harder settings multiply your score.
 
 New players start with **Orientation Night**, an interactive tutorial hosted by Ms. Okafor the librarian. It plays before story mode (skip with Esc or Tab) and is on the main menu.
@@ -41,7 +52,7 @@ npx http-server .   # then open http://localhost:8080
 - **Flow.** Fix things quickly and back to back to build a points multiplier up to x8. SHHH two things at once for a multi-shush bonus.
 - **Coffee and pizza.** Vending-machine coffee wakes nappers, boosts a friend, or turbo-charges your own typing. A surprise pizza delivery can be shared slice by slice.
 - **Study Hacks.** After each night you pick 1 of 3 upgrades (Cold Brew, Double Dash, Lo-Fi Playlist, Encore, Thesaurus Pro, Ethernet Cable, and more). They stack across the run.
-- **Four playable leads** with different strengths: Riley the Captain, Dev the Track Star, Priya the Debate Captain, June the Valedictorian.
+- **Story mode** with a prologue, a cutscene before every night, a finale and voiced-in-text reactions on Decision Day. Each character also has their own chatter while they study (skip any scene with Esc).
 - **Decision Day.** Finish the campaign to see who gets in where.
 - **Rolling Admissions** is an endless mode with escalating nights and a saved high score.
 
@@ -71,6 +82,7 @@ js/essay.js     the essay line-picking minigame and its writing
 js/game.js      input, nights, upgrades, scoring, the night simulation and world render
 js/hud.js       in-game HUD, prompts, essay laptop, minigames
 js/screens.js   title (library exterior), character select, intros, report cards, upgrades, ending
+js/story.js     character voices, story scripts and the cutscene player
 js/tutorial.js  Orientation Night, the interactive tutorial
 js/main.js      boot, scaling, keyboard/mouse/touch/gamepad, transitions, main loop
 ```

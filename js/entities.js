@@ -4,47 +4,53 @@
   const U = MB.U, A = MB.A, Wd = MB.World;
 
   // --- rosters ----------------------------------------------------------------------
+  // The Miller Branch study group. Each one is playable; the other three are your tablemates.
   MB.CHARACTERS = [
     {
-      id: 'riley', name: 'Riley', title: 'The Captain',
-      blurb: 'Pep talks and coffee hit harder. Friends rally faster.',
-      perks: ['Pep talks restore full focus', 'Coffee boosts last longer'],
-      look: { skin: '#e8b48e', hair: '#5a3a22', hairStyle: 'curly', top: '#f6c945', top2: '#e0524a', pants: '#3b4a6b', shoes: '#f2efe6', seed: 11 },
+      id: 'max', name: 'Max', title: 'Pre-Med · Duke ED', college: 'Duke', major: 'pre-med',
+      blurb: 'Diagnoses senioritis on sight. Bedside manner so good it counts as a superpower.',
+      perks: ['Pep talks restore full focus', 'Coffee boosts last 50% longer'],
+      look: { skin: '#f1cfb0', hair: '#141218', hairStyle: 'bangs', top: '#1f2b4a', pattern: 'polo', pants: '#c9b48e', shoes: '#f2efe6', seed: 11 },
       stats: { speed: 1, dash: 1, shushR: 1, shushCd: 1, type: 1, pep: 1.5, coffee: 1.5 },
     },
     {
-      id: 'dev', name: 'Dev', title: 'Track Star',
-      blurb: 'Fastest legs in Howard County. Dashes recharge in a blink.',
-      perks: ['+15% move speed', 'Dash recharges 35% faster', 'Types a bit slower'],
-      look: { skin: '#a86b45', hair: '#1a1a2e', hairStyle: 'short', top: '#e0524a', top2: '#fbf3e4', pattern: 'stripe', pants: '#2b2733', shoes: '#f6c945', acc: 'headphones', accCol: '#4a7fd1', seed: 23 },
-      stats: { speed: 1.15, dash: 0.65, shushR: 1, shushCd: 1, type: 0.88, pep: 1, coffee: 1 },
-    },
-    {
-      id: 'priya', name: 'Priya', title: 'Debate Captain',
-      blurb: 'Projects a SHHH that silences a whole wing. Cooldown is short.',
-      perks: ['SHHH radius +35%', 'SHHH cooldown -30%'],
-      look: { skin: '#c98e64', hair: '#2b1d1a', hairStyle: 'long', top: '#8a5ac2', top2: '#f6c945', pants: '#3b4a6b', shoes: '#fbf3e4', acc: 'glasses', seed: 37 },
+      id: 'akshan', name: 'Akshan', title: 'Policy/Econ · Yale EA', college: 'Yale', major: 'policy + econ',
+      blurb: 'Wears a suit to the library. Delivers a SHHH with the force of a floor speech.',
+      perks: ['SHHH reaches 35% farther', 'SHHH recharges 30% faster'],
+      look: { skin: '#a8714c', hair: '#141218', hairStyle: 'bigcurly', top: '#1d1c22', pattern: 'suit', pants: '#1d1c22', shoes: '#2b2733', seed: 37 },
       stats: { speed: 1, dash: 1, shushR: 1.35, shushCd: 0.7, type: 1, pep: 1, coffee: 1 },
     },
     {
-      id: 'june', name: 'June', title: 'Valedictorian',
-      blurb: 'Writes essays at terrifying speed. Slightly slower on foot.',
-      perks: ['Types 40% faster', 'Ignores noise while typing', '-6% move speed'],
-      look: { skin: '#f6d2b4', hair: '#2b1d1a', hairStyle: 'bob', top: '#3fa7a0', top2: '#fbf3e4', pattern: 'vest', pants: '#4a3a5a', shoes: '#2b2733', acc: 'glasses2', seed: 41 },
+      id: 'rishit', name: 'Rishit', title: 'Policy/Env Sci · Columbia ED', college: 'Columbia', major: 'policy + environmental science',
+      blurb: 'Bikes everywhere, protests the printer, and moves faster than the county council.',
+      perks: ['+15% move speed', 'Dash recharges 35% faster', 'Writes a touch slower'],
+      look: { skin: '#9c6745', hair: '#141218', hairStyle: 'wavy', top: '#3d2a22', top2: '#b9bcc4', pattern: 'crew', pants: '#3b4a6b', shoes: '#f2efe6', mustache: true, seed: 23 },
+      stats: { speed: 1.15, dash: 0.65, shushR: 1, shushCd: 1, type: 0.88, pep: 1, coffee: 1 },
+    },
+    {
+      id: 'bryan', name: 'Bryan', title: 'Engineering · Princeton SCEA', college: 'Princeton', major: 'engineering',
+      blurb: 'Runs on energy drinks and soldering fumes. Engineered his own noise immunity.',
+      perks: ['Essay lines count 40% more', 'Noise never fogs his cards', 'A bit slower on foot'],
+      look: { skin: '#efc9a6', hair: '#141218', hairStyle: 'messy', top: '#efece4', pattern: 'rib', pants: '#3b4a6b', shoes: '#f2efe6', backpack: true, watch: true, seed: 41 },
       stats: { speed: 0.94, dash: 1, shushR: 1, shushCd: 1, type: 1.4, pep: 1, coffee: 1, calm: true },
     },
   ];
-
-  MB.FRIENDS = [
-    { name: 'Marcus', college: 'Johns Hopskins', look: { skin: '#7a4a2e', hair: '#1a1a2e', hairStyle: 'buzz', top: '#4a7fd1', top2: '#f6c945', acc: 'headphones', accCol: '#e0524a', pants: '#2b2733', seed: 51 } },
-    { name: 'Sofia', college: 'Brown-ish University', look: { skin: '#e8b48e', hair: '#a0522d', hairStyle: 'ponytail', top: '#ef7fa6', top2: '#fbf3e4', pants: '#3b4a6b', seed: 52 } },
-    { name: 'Kenji', college: 'M.I.Tea', look: { skin: '#f6d2b4', hair: '#1a1a2e', hairStyle: 'spiky', top: '#6cbf6a', top2: '#2b2733', acc: 'glasses', pants: '#4a3a5a', seed: 53 } },
-    { name: 'Aaliyah', college: 'Yail', look: { skin: '#5a3420', hair: '#2b1d1a', hairStyle: 'afro', top: '#f08a3c', top2: '#fbf3e4', pants: '#2f5d8a', seed: 54 } },
-    { name: 'Theo', college: 'Prinstun', look: { skin: '#f6d2b4', hair: '#d9a441', hairStyle: 'beanie', hair2: '#e0524a', top: '#3fa7a0', top2: '#f6c945', pants: '#3b4a6b', seed: 55 } },
-    { name: 'Lena', college: 'Colombia', look: { skin: '#e8b48e', hair: '#c25b8f', hairStyle: 'bob', top: '#2f5d8a', top2: '#ef7fa6', pants: '#2b2733', seed: 56 } },
-    { name: 'Omar', college: 'Dook', look: { skin: '#c98e64', hair: '#2b1d1a', hairStyle: 'curly', top: '#d9c27a', top2: '#8a5ac2', acc: 'glasses', pants: '#4a3a5a', seed: 57 } },
-    { name: 'Bea', college: 'Univ. of Merrieland', look: { skin: '#f6d2b4', hair: '#7a2e2e', hairStyle: 'bun', top: '#9fe0c4', top2: '#e0524a', pants: '#3b4a6b', seed: 58 } },
-  ];
+  // Halloween costumes for Submit Night
+  MB.COSTUMES = {
+    max: { top: '#f4f4f0', top2: '#1f2b4a', pattern: 'labcoat' },
+    akshan: { lanyard: '#c94f3d' },
+    rishit: { top: '#4f8a43', top2: '#3d2a22', hat: 'leaves' },
+    bryan: { top: '#9aa3ad', pattern: null, hat: 'antenna', backpack: false },
+  };
+  // The three tablemates for a given lead: the "next" one in the rotation is the one who
+  // misses the first two nights (and makes a dramatic entrance on Night 3).
+  MB.friendsFor = function (ch) {
+    const ids = MB.CHARACTERS.map((c) => c.id);
+    const i = ids.indexOf(ch.id);
+    const absent = MB.CHARACTERS[(i + 1) % 4];
+    const present = MB.CHARACTERS.filter((c) => c !== ch && c !== absent);
+    return present.concat([absent]).map((c) => ({ id: c.id, name: c.name, college: c.college, look: c.look }));
+  };
 
   MB.LINES = {
     study: ['is 650 words a suggestion?', "what rhymes with 'leadership'", 'thesaurus.com go brrr', 'my essay is about my dog', 'ctrl+s ctrl+s ctrl+s', "deleting my whole intro...", 'who wrote these prompts', 'ok. ok. ok. ok.', "'why us?' because u exist", 'activities list = 150 chars??', 'should i mention the robot club', 'one more paragraph'],
@@ -223,6 +229,7 @@
   class Student {
     constructor(info, seat, idx) {
       this.idx = idx;
+      this.id = info.id;
       this.name = info.name;
       this.look = Object.assign({ chair: A.C.chair }, info.look);
       this.college = info.college;
@@ -294,14 +301,14 @@
       this.focus = 0;
       const poi = U.pick(Wd.pois);
       this.goTo(poi.x + U.rand(-20, 20), poi.y + U.rand(-10, 10));
-      this.say(U.pick(MB.LINES.distracted), 2.2);
+      this.say(MB.line(this.id, 'distracted'), 2.2);
       MB.Audio.play('bad');
     }
     pep(g) {
       if (this.state !== 'wander' && this.state !== 'scroll') return false;
       this.state = 'return';
       this.goTo(this.seat.x, this.seat.y);
-      this.say(U.pick(MB.LINES.back), 2);
+      this.say(MB.line(this.id, 'back'), 2);
       const full = g.stats.pep > 1;
       this.focus = full ? 100 : 75;
       if (g.has('peptalk')) {
@@ -331,7 +338,7 @@
           const poi = U.pick(Wd.pois);
           this.goTo(poi.x + U.rand(-20, 20), poi.y);
         }
-        if (Math.random() < dt * 0.25) this.say(U.pick(MB.LINES.distracted), 1.8);
+        if (Math.random() < dt * 0.25) this.say(MB.line(this.id, 'distracted'), 1.8);
       } else if (this.state === 'return') {
         if (this.stepPath(dt, 150)) {
           this.state = 'study';
@@ -343,7 +350,7 @@
         this.chatterT -= dt;
         if (this.chatterT <= 0) {
           this.chatterT = U.rand(10, 22);
-          if (!this.bubble) this.say(U.pick(MB.LINES.study), 2.6);
+          if (!this.bubble) this.say(MB.line(this.id, 'study'), 2.6);
         }
       }
     }

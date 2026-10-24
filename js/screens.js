@@ -636,7 +636,7 @@
         Au.play('confirm');
         U.store.set('char', st.sel);
         const run = MB.newRun(st.sel, mode);
-        if (mode === 'campaign') MB.go(new MB.Tutorial(run, () => MB.go(S.intro(run))));
+        if (mode === 'campaign') MB.playScene(MB.STORY.prologue(run), run, MB.NIGHTS[0], () => MB.go(new MB.Tutorial(run, () => MB.go(S.intro(run)))));
         else MB.go(S.intro(run));
       }
     };
@@ -708,7 +708,8 @@
       if (In.hit('mute')) Au.toggleMute();
       if (st.t > 0.5 && (In.hit('act') || In.mouse.clicked)) {
         Au.play('confirm');
-        MB.go(new MB.Night(run));
+        if (run.mode === 'campaign') MB.playScene(MB.STORY.night(run, def.n), run, def, () => MB.go(new MB.Night(run)));
+        else MB.go(new MB.Night(run));
       }
       if (In.hit('pause')) {
         Au.play('back');
@@ -805,7 +806,7 @@
     ];
     let options;
     if (res.cont) {
-      options = finalNight ? [{ label: 'OPEN DECISION LETTERS', go: () => MB.go(S.ending()) }] : [{ label: 'PICK A STUDY HACK', go: () => MB.go(S.upgrade()) }];
+      options = finalNight ? [{ label: 'MIDNIGHT...', go: () => MB.playScene(MB.STORY.finale(run), run, MB.NIGHTS[4], () => MB.go(S.ending())) }] : [{ label: 'PICK A STUDY HACK', go: () => MB.go(S.upgrade()) }];
     } else if (res.endless) {
       options = [{ label: 'PLAY AGAIN', go: () => MB.go(S.difficulty('endless')) }, { label: 'TITLE', go: () => MB.go(S.title()) }];
     } else {
@@ -1067,18 +1068,20 @@
   };
 
   // --- ending: decision day -------------------------------------------------------------------------------
-  const DREAM = { riley: 'Stanferd', dev: 'Univ. of Merrieland', priya: 'Hahvard', june: 'M.I.Tea' };
   S.ending = function () {
     const run = MB.run;
     FX.clear();
     const isNew = saveBest('campaign', run.score);
-    const people = [{ name: run.ch.name, look: run.ch.look, college: DREAM[run.ch.id], done: run.records.__me || 0, of: 5, you: true }];
+    const people = [{ id: run.ch.id, name: run.ch.name, look: run.ch.look, college: run.ch.college, done: run.records.__me || 0, of: 5, you: true }];
     run.friends.forEach((f, i) => {
       const of = MB.NIGHTS.filter((n) => n.friends > i).length;
-      people.push({ name: f.name, look: f.look, college: f.college, done: run.records[f.name] || 0, of });
+      people.push({ id: f.id, name: f.name, look: f.look, college: f.college, done: run.records[f.name] || 0, of });
     });
     for (const p of people) p.result = p.done >= Math.ceil(p.of * 0.6) ? 'ACCEPTED' : p.done >= 1 ? 'WAITLISTED' : 'DEFERRED';
     const accepted = people.filter((p) => p.result === 'ACCEPTED').length;
+    const groupSize = people.length;
+    // and one more letter, 39 years late
+    people.push({ id: 'ghost', name: 'Dewey', ghost: true, college: 'Yale (Class of 1992)', result: 'ACCEPTED', note: 'fax received after 39 years' });
     const ranks = [[260000, 'Legend of Miller Branch'], [200000, 'Valedictorian Energy'], [140000, "Dean's List"], [80000, 'Solid Applicant'], [0, 'Late Bloomer']];
     const rank = ranks.find((r) => run.score >= r[0])[1];
     const st = { name: 'ending', t: 0, sel: 0, rects: [], opened: 0 };
@@ -1115,12 +1118,22 @@
     st.draw = (ctx) => {
       S.drawBackdrop(ctx, st.t, 0.55);
       A.text(ctx, 'DECEMBER 15 · DECISION DAY', W / 2, 66, { size: 44, color: '#ffe08a', outline: 10, shadow: 5 });
-      A.text(ctx, 'The Miller Branch study group opens their portals...', W / 2, 108, { size: 21, font: A.F.hand, color: '#e8d8ff', outline: 5 });
+      A.text(ctx, 'Max, Akshan, Rishit and Bryan open their portals...', W / 2, 108, { size: 21, font: A.F.hand, color: '#e8d8ff', outline: 5 });
       people.forEach((p, i) => {
         const x = slotX(i), y = 360;
         const open = i < st.opened;
-        A.person(ctx, x, y - 30, p.look, { pose: open ? (p.result === 'ACCEPTED' ? 'cheer' : 'stand') : 'scroll', t: st.t + i, emo: open ? (p.result === 'ACCEPTED' ? 'happy' : p.result === 'WAITLISTED' ? 'neutral' : 'sad') : 'scroll', scale: 1.7 });
+        if (p.ghost) {
+          ctx.save();
+          ctx.translate(x, y - 40);
+          ctx.scale(1.3, 1.3);
+          A.ghost(ctx, 0, 0, st.t, 0.85, false);
+          ctx.restore();
+        } else A.person(ctx, x, y - 30, p.look, { pose: open ? (p.result === 'ACCEPTED' ? 'cheer' : 'stand') : 'scroll', t: st.t + i, emo: open ? (p.result === 'ACCEPTED' ? 'happy' : p.result === 'WAITLISTED' ? 'neutral' : 'sad') : 'scroll', scale: 1.7 });
         A.text(ctx, p.name + (p.you ? ' (you)' : ''), x, y + 4, { size: 22, color: '#fff6e6', outline: 6 });
+        if (open && st.t - (1.2 + i * 1.1) > 0.4) {
+          const quote = p.ghost ? 'Class of 1992! Fashionably late.' : MB.VOICE[p.id].dd[p.result];
+          A.bubble(ctx, x, y - 150, quote, { size: 15, maxW: 200 });
+        }
         // letter
         ctx.save();
         ctx.translate(x, y + 120);
@@ -1150,14 +1163,14 @@
           A.fs(ctx, null, 4, col);
           A.text(ctx, p.result, 0, 15, { size: 28, color: col, outline: 0 });
           ctx.restore();
-          A.text(ctx, p.done + ' of ' + p.of + ' nights submitted', 0, 60, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0 });
+          A.text(ctx, p.note || p.done + ' of ' + p.of + ' nights submitted', 0, 60, { size: 14, font: A.F.hand, color: A.C.inkSoft, outline: 0 });
         }
         ctx.restore();
       });
       if (st.cheered) {
         const done = HUD.card(ctx, W / 2 - 260, 556, 520, 92, -0.01, '#fff6e6', 800);
         A.text(ctx, 'FINAL SCORE ' + U.fmtNum(run.score), 0, -18, { size: 30, color: A.INK, outline: 0 });
-        A.text(ctx, rank + ' · ' + accepted + '/' + people.length + ' accepted' + (isNew ? ' · NEW BEST!' : ''), 0, 18, { size: 20, font: A.F.hand, color: isNew ? '#c94f3d' : A.C.inkSoft, outline: 0 });
+        A.text(ctx, rank + ' · ' + accepted + '/' + groupSize + ' accepted' + (isNew ? ' · NEW BEST!' : ''), 0, 18, { size: 20, font: A.F.hand, color: isNew ? '#c94f3d' : A.C.inkSoft, outline: 0 });
         done();
         st.rects = options.map((o, i) => {
           const x = W / 2 + (i - 1) * 330, y = H - 30;
